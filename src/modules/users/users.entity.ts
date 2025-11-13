@@ -1,5 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm'
 import { Exclude } from 'class-transformer'
+import { File } from '../files/files.entity'
 
 export enum UserRole {
     ADMIN = 0,
@@ -32,6 +33,9 @@ export class User {
 
     @Column({ type: 'enum', enum: UserRole, default: UserRole.USER })
     role: UserRole
+
+    @OneToMany(() => File, (file) => file.user)
+    files: File[]
 
     @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
     createdAt: Date

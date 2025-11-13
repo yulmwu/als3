@@ -37,20 +37,6 @@ export class UsersService {
         return user
     }
 
-    async findByIdWithFavoriteTopics(id: number) {
-        const user = await this.userRepo
-            .createQueryBuilder('user')
-            .leftJoinAndSelect('user.favoriteTopics', 'favoriteTopics')
-            .leftJoinAndSelect('favoriteTopics.topic', 'topic')
-            .where('user.id = :id', { id })
-            .getOne()
-        if (!user) {
-            throw new NotFoundException('User not found')
-        }
-
-        return user
-    }
-
     async getPasswordByUsername(username: string) {
         const user = await this.userRepo
             .createQueryBuilder('user')

@@ -11,6 +11,7 @@ const IS_PRODUCTION = process.env.NODE_ENV === 'production'
 
 const bootstrap = async () => {
     const app = await NestFactory.create(AppModule)
+
     app.setGlobalPrefix('api')
     app.useGlobalPipes(
         new ValidationPipe({
@@ -38,6 +39,7 @@ const bootstrap = async () => {
     await app.listen(PORT)
 
     logger.log(`Application is running on: ${await app.getUrl()}`)
+    logger.log(`API Test Page: http://localhost:${PORT}/`)
 
     if (!IS_PRODUCTION) {
         logger.log(`Swagger is available at: ${await app.getUrl()}/api-docs`)

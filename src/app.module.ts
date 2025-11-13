@@ -5,6 +5,7 @@ import { RedisModule } from './common/redis/redis.module'
 
 import { UsersModule } from './modules/users/users.module'
 import { AuthModule } from './modules/auth/auth.module'
+import { FilesModule } from './modules/files/files.module'
 
 import { AppController } from './app.controller'
 
@@ -23,6 +24,7 @@ import { AppController } from './app.controller'
         RedisModule,
         AuthModule,
         UsersModule,
+        FilesModule,
     ],
     controllers: [AppController],
 })

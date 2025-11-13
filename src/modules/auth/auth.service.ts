@@ -57,11 +57,7 @@ export class AuthService {
     }
 
     async getMe(userId: number): Promise<GetMeResponseDto> {
-        const user = await this.usersService.findByIdWithFavoriteTopics(userId)
-        if (!user) {
-            throw new UnauthorizedException('User not found')
-        }
-
+        const user = await this.usersService.findById(userId)
         return user
     }
 }
