@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
@@ -38,6 +39,7 @@ interface FilesManagerProps {
 
 export const FilesManager = ({ currentUuid, onFileSelect, onDownload }: FilesManagerProps = {}) => {
     const router = useRouter()
+    const searchParams = useSearchParams()
     const { user, loading: authLoading } = useAuth()
     const [page, setPage] = useState(1)
     const [showCreateDialog, setShowCreateDialog] = useState(false)
@@ -98,6 +100,18 @@ export const FilesManager = ({ currentUuid, onFileSelect, onDownload }: FilesMan
         queryFn: () => listFiles(currentUuid, page, 20),
         enabled: !!user,
     })
+
+    useEffect(() => {
+        const f = searchParams.get('f')
+        if (!f) {
+            setSelectedFileForDetail(null)
+            return
+        }
+        if (filesData?.items) {
+            const match = filesData.items.find((it) => it.uuid === f) || null
+            setSelectedFileForDetail(match)
+        }
+    }, [searchParams, filesData])
 
     const createFolderMutation = useMutation({
         mutationFn: (name: string) => createDirectory({ name, parentUuid: currentUuid }),
@@ -252,7 +266,6 @@ export const FilesManager = ({ currentUuid, onFileSelect, onDownload }: FilesMan
                     <div className='flex items-center gap-2 text-sm text-gray-600'>
                         <button onClick={navigateToRoot} className='hover:text-blue-600 flex items-center gap-1'>
                             <Home className='w-4 h-4' />
-                            루트
                         </button>
                         {breadcrumb.map((dir, index) => (
                             <div key={dir.uuid} className='flex items-center gap-2'>
@@ -572,7 +585,6 @@ export const FilesManager = ({ currentUuid, onFileSelect, onDownload }: FilesMan
                 </div>
             )}
 
-            {/* Inline error banner for non-modal actions */}
             {error && !showCreateDialog && !showUploadDialog && (
                 <div className='fixed bottom-6 right-6 z-30 max-w-sm'>
                     <div className='rounded-lg border border-red-200 bg-white shadow-lg p-3 flex items-start gap-2'>
