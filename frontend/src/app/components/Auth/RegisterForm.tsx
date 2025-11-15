@@ -77,7 +77,7 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
             {success && (
                 <div className='mb-4 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2 text-green-700'>
                     <CheckCircle className='w-5 h-5 flex-shrink-0' />
-                    <span className='text-sm'>회원가입이 완료되었습니다. 로그인 페이지로 이동합니다...</span>
+                    <span className='text-sm'>회원가입이 완료되었습니다.</span>
                 </div>
             )}
             <AuthForm

@@ -174,6 +174,8 @@ export const FilesManager = ({ currentUuid, onFileSelect, onDownload }: FilesMan
         }
     }
 
+    
+
     const handleDelete = (item: FileItem) => {
         setError(null)
         setOpenMenuUuid(null)
@@ -306,7 +308,7 @@ export const FilesManager = ({ currentUuid, onFileSelect, onDownload }: FilesMan
                     ) : !filesData || filesData.items.length === 0 ? (
                         <div className='text-center py-12'>
                             <Folder className='w-16 h-16 mx-auto text-gray-300 mb-4' />
-                            <div className='text-gray-500'>이 폴더는 비어있습니다</div>
+                            <div className='text-gray-500'>비어있는 디렉토리입니다.</div>
                         </div>
                     ) : (
                         <div className='overflow-x-auto overflow-y-visible -mx-4 sm:mx-0'>
@@ -521,6 +523,14 @@ export const FilesManager = ({ currentUuid, onFileSelect, onDownload }: FilesMan
                             >
                                 <Upload className='w-4 h-4 text-blue-600' /> 파일 업로드
                             </button>
+                            {(uploadFileMutation.isPending) && (
+                                <div className='px-3 pt-1 pb-2'>
+                                    <div className='flex items-center gap-2 text-xs text-gray-600'>
+                                        <Loader2 className='w-4 h-4 animate-spin text-blue-600' />
+                                        업로드 중...
+                                    </div>
+                                </div>
+                            )}
                             <button
                                 className='w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2'
                                 onClick={() => setShowInlineCreate(true)}
