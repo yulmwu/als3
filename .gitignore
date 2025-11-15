@@ -1,6 +1,24 @@
-/dist
+# Dependencies
 /node_modules
+**/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# Build outputs
+/dist
+**/dist
 /build
+**/build
+/.next/
+**/.next/
+/out/
+
+# Logs
 logs
 *.log
 npm-debug.log*
@@ -8,9 +26,12 @@ pnpm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 lerna-debug.log*
-.DS_Store
+
+# Coverage
 /coverage
-/.nyc_output
+**/.nyc_output
+
+# IDE
 /.idea
 .project
 .classpath
@@ -23,11 +44,19 @@ lerna-debug.log*
 !.vscode/tasks.json
 !.vscode/launch.json
 !.vscode/extensions.json
+
+# OS
+.DS_Store
+*.pem
+
+# Environment variables
 .env
+.env.local
 .env.development.local
 .env.test.local
 .env.production.local
-.env.local
+
+# Temporary files
 .temp
 .tmp
 pids
@@ -35,8 +64,17 @@ pids
 *.seed
 *.pid.lock
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+
+# Backups
 **/*.bkp
 **/*.bak
 **/*.dtmp
 *.private.*
 _examples
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
+
+# Vercel
+.vercel
