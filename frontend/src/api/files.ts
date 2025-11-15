@@ -3,12 +3,14 @@ import { withAuthRetry } from './token'
 
 export interface FileItem {
     id: number
+    uuid: string
     name: string
     type: 'file' | 'directory'
     s3Key?: string
     mimeType?: string
     size?: number
     path: string
+    parentId?: number
     userId: number
     createdAt: string
     updatedAt: string
@@ -28,16 +30,18 @@ export interface ListFilesResponse {
 
 export interface CreateDirectoryRequest {
     name: string
-    path?: string
+    parentUuid?: string
 }
 
 const FILES_API_PREFIX = 'files'
 
-export const uploadFile = async (file: File, path: string = '/') => {
+export const uploadFile = async (file: File, parentUuid?: string) => {
     return withAuthRetry(async (header) => {
         const formData = new FormData()
         formData.append('file', file)
-        formData.append('path', path)
+        if (parentUuid) {
+            formData.append('parentUuid', parentUuid)
+        }
 
         const response = await client.post<FileItem>(`/${FILES_API_PREFIX}/upload`, formData, {
             ...header,
@@ -57,11 +61,11 @@ export const createDirectory = async (data: CreateDirectoryRequest) => {
     })
 }
 
-export const listFiles = async (path: string = '/', page: number = 1, limit: number = 20) => {
+export const listFiles = async (parentUuid?: string, page: number = 1, limit: number = 20) => {
     return withAuthRetry(async (header) => {
         const response = await client.get<ListFilesResponse>(`/${FILES_API_PREFIX}`, {
             ...header,
-            params: { path, page, limit },
+            params: { parentUuid, page, limit },
         })
         return response.data
     })
@@ -74,9 +78,30 @@ export const getFile = async (id: number) => {
     })
 }
 
+export const getFileByUuid = async (uuid: string) => {
+    return withAuthRetry(async (header) => {
+        const response = await client.get<FileItem>(`/${FILES_API_PREFIX}/uuid/${uuid}`, header)
+        return response.data
+    })
+}
+
 export const getDownloadUrl = async (id: number) => {
     return withAuthRetry(async (header) => {
         const response = await client.get<FileWithDownloadUrl>(`/${FILES_API_PREFIX}/${id}/download`, header)
+        return response.data
+    })
+}
+
+export const getDownloadUrlByUuid = async (uuid: string) => {
+    return withAuthRetry(async (header) => {
+        const response = await client.get<FileWithDownloadUrl>(`/${FILES_API_PREFIX}/uuid/${uuid}/download`, header)
+        return response.data
+    })
+}
+
+export const getBreadcrumb = async (uuid: string) => {
+    return withAuthRetry(async (header) => {
+        const response = await client.get<FileItem[]>(`/${FILES_API_PREFIX}/uuid/${uuid}/breadcrumb`, header)
         return response.data
     })
 }

@@ -33,17 +33,6 @@ function RegisterContent() {
     return (
         <div className='min-h-screen flex items-center justify-center bg-gray-50 px-4 py-12'>
             <div className='w-full max-w-md'>
-                <div className='text-center mb-8'>
-                    <Link href='/' className='inline-flex items-center space-x-2'>
-                        <div className='w-12 h-12 bg-slate-600 rounded-full flex items-center justify-center'>
-                            <span className='text-white font-bold text-xl'>7</span>
-                        </div>
-                        <span className='text-3xl font-bold text-slate-600'>0725</span>
-                    </Link>
-                    <h1 className='text-2xl font-bold text-gray-900 mt-6'>회원가입</h1>
-                    <p className='text-gray-600 mt-2'>새 계정을 만드세요</p>
-                </div>
-
                 <div className='bg-white rounded-lg shadow-lg p-8'>
                     <RegisterForm
                         onSuccess={() => {

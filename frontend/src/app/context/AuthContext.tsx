@@ -52,6 +52,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             const result = await loginUser(username, password)
             setAccessToken(result.accessToken)
             await fetchMe()
+        } catch (error: any) {
+            console.error('Login failed:', error)
+            const err = new Error(error?.response?.data?.message || error?.message || 'Login failed')
+            ;(err as any).response = error?.response
+            throw err
         } finally {
             setLoading(false)
         }
@@ -61,6 +66,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setLoading(true)
         try {
             await registerUser(data.username, data.email, data.password, data.nickname)
+        } catch (error: any) {
+            console.error('Register failed:', error)
+            const err = new Error(error?.response?.data?.message || error?.message || 'Registration failed')
+            ;(err as any).response = error?.response
+            throw err
         } finally {
             setLoading(false)
         }

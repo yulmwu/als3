@@ -2,10 +2,10 @@
 
 import { Suspense, useState, useEffect } from 'react'
 import { useParams, useSearchParams, useRouter } from 'next/navigation'
-import { FilesManager } from '../components/Files/FilesManager'
-import { FileDetailSidebar } from '../components/Files/FileDetailSidebar'
-import { Header } from '../components/Header'
-import { LeftSidebar } from '../components/LeftSidebar'
+import { FilesManager } from '../../components/Files/FilesManager'
+import { FileDetailSidebar } from '../../components/Files/FileDetailSidebar'
+import { Header } from '../../components/Header'
+import { LeftSidebar } from '../../components/LeftSidebar'
 import { FileItem, getDownloadUrlByUuid, getFileByUuid } from '@/api/files'
 
 const FilesPage = () => {

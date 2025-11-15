@@ -1,9 +1,17 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter, useParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { listFiles, createDirectory, uploadFile, deleteFile, getDownloadUrl, FileItem } from '@/api/files'
+import {
+    listFiles,
+    createDirectory,
+    uploadFile,
+    deleteFile,
+    getDownloadUrlByUuid,
+    getBreadcrumb,
+    FileItem,
+} from '@/api/files'
 import {
     Folder,
     File,
@@ -19,15 +27,14 @@ import {
 import { useAuth } from '@/app/context/AuthContext'
 
 interface FilesManagerProps {
+    currentUuid?: string
     onFileSelect?: (file: FileItem | null) => void
     onDownload?: (file: FileItem) => void
 }
 
-export const FilesManager = ({ onFileSelect, onDownload }: FilesManagerProps = {}) => {
+export const FilesManager = ({ currentUuid, onFileSelect, onDownload }: FilesManagerProps = {}) => {
     const router = useRouter()
-    const params = useParams()
     const { user, loading: authLoading } = useAuth()
-    const [currentPath, setCurrentPath] = useState('/')
     const [page, setPage] = useState(1)
     const [showCreateDialog, setShowCreateDialog] = useState(false)
     const [showUploadDialog, setShowUploadDialog] = useState(false)
@@ -37,6 +44,7 @@ export const FilesManager = ({ onFileSelect, onDownload }: FilesManagerProps = {
     const [newFolderName, setNewFolderName] = useState('')
     const [selectedFile, setSelectedFile] = useState<File | null>(null)
     const [error, setError] = useState<string | null>(null)
+    const [breadcrumb, setBreadcrumb] = useState<FileItem[]>([])
 
     const queryClient = useQueryClient()
 
@@ -47,37 +55,34 @@ export const FilesManager = ({ onFileSelect, onDownload }: FilesManagerProps = {
     }, [user, authLoading, router])
 
     useEffect(() => {
-        const pathSegments = params.path as string[] | undefined
-        if (pathSegments && pathSegments.length > 0) {
-            const fullPath = '/' + pathSegments.join('/') + '/'
-            setCurrentPath(fullPath)
-        } else {
-            setCurrentPath('/')
+        if (!currentUuid) {
+            setBreadcrumb([])
+            return
         }
-    }, [params.path])
 
-    const updatePath = (newPath: string) => {
-        setCurrentPath(newPath)
-        setPage(1)
-
-        if (newPath === '/') {
-            router.push('/files')
-        } else {
-            const cleanPath = newPath.replace(/^\/|\/$/g, '')
-            router.push(`/files/${cleanPath}`)
+        const buildBreadcrumb = async (uuid: string) => {
+            try {
+                const trail = await getBreadcrumb(uuid)
+                setBreadcrumb(trail)
+            } catch (error) {
+                console.error('Failed to build breadcrumb:', error)
+                setBreadcrumb([])
+            }
         }
-    }
+
+        buildBreadcrumb(currentUuid)
+    }, [currentUuid])
 
     const { data: filesData, isLoading } = useQuery({
-        queryKey: ['files', currentPath, page],
-        queryFn: () => listFiles(currentPath, page, 20),
+        queryKey: ['files', currentUuid, page],
+        queryFn: () => listFiles(currentUuid, page, 20),
         enabled: !!user,
     })
 
     const createFolderMutation = useMutation({
-        mutationFn: (name: string) => createDirectory({ name, path: currentPath }),
+        mutationFn: (name: string) => createDirectory({ name, parentUuid: currentUuid }),
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['files', currentPath] })
+            queryClient.invalidateQueries({ queryKey: ['files', currentUuid] })
             setShowCreateDialog(false)
             setNewFolderName('')
             setError(null)
@@ -88,9 +93,9 @@ export const FilesManager = ({ onFileSelect, onDownload }: FilesManagerProps = {
     })
 
     const uploadFileMutation = useMutation({
-        mutationFn: (file: File) => uploadFile(file, currentPath),
+        mutationFn: (file: File) => uploadFile(file, currentUuid),
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['files', currentPath] })
+            queryClient.invalidateQueries({ queryKey: ['files', currentUuid] })
             setShowUploadDialog(false)
             setSelectedFile(null)
             setError(null)
@@ -103,7 +108,7 @@ export const FilesManager = ({ onFileSelect, onDownload }: FilesManagerProps = {
     const deleteMutation = useMutation({
         mutationFn: (id: number) => deleteFile(id),
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['files', currentPath] })
+            queryClient.invalidateQueries({ queryKey: ['files', currentUuid] })
             setShowDeleteDialog(false)
             setItemToDelete(null)
             setError(null)
@@ -141,7 +146,7 @@ export const FilesManager = ({ onFileSelect, onDownload }: FilesManagerProps = {
 
     const handleDownload = async (item: FileItem) => {
         try {
-            const data = await getDownloadUrl(item.id)
+            const data = await getDownloadUrlByUuid(item.uuid)
             if (data.downloadUrl) {
                 window.open(data.downloadUrl, '_blank')
             }
@@ -153,29 +158,25 @@ export const FilesManager = ({ onFileSelect, onDownload }: FilesManagerProps = {
 
     const handleItemClick = (item: FileItem) => {
         if (item.type === 'directory') {
-            const newPath = `${currentPath}${item.name}/`.replace(/\/+/g, '/')
-            updatePath(newPath)
             setSelectedFileForDetail(null)
             if (onFileSelect) onFileSelect(null)
+            router.push(`/files/${item.uuid}`)
         } else {
             setSelectedFileForDetail(item)
             if (onFileSelect) onFileSelect(item)
         }
     }
 
-    const getPathParts = () => {
-        if (currentPath === '/') return []
-        return currentPath.split('/').filter((p) => p !== '')
+    const navigateToRoot = () => {
+        setSelectedFileForDetail(null)
+        if (onFileSelect) onFileSelect(null)
+        router.push('/files')
     }
 
-    const navigateTo = (index: number) => {
-        const parts = getPathParts()
-        if (index === -1) {
-            updatePath('/')
-        } else {
-            const newPath = '/' + parts.slice(0, index + 1).join('/') + '/'
-            updatePath(newPath)
-        }
+    const navigateToDirectory = (dir: FileItem) => {
+        setSelectedFileForDetail(null)
+        if (onFileSelect) onFileSelect(null)
+        router.push(`/files/${dir.uuid}`)
     }
 
     const formatFileSize = (bytes?: number) => {
@@ -220,14 +221,14 @@ export const FilesManager = ({ onFileSelect, onDownload }: FilesManagerProps = {
                         <div className='flex gap-2'>
                             <button
                                 onClick={() => setShowUploadDialog(true)}
-                                className='px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2'
+                                className='px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 flex items-center gap-2'
                             >
                                 <Upload className='w-4 h-4' />
                                 파일 업로드
                             </button>
                             <button
                                 onClick={() => setShowCreateDialog(true)}
-                                className='px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2'
+                                className='px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 flex items-center gap-2'
                             >
                                 <FolderPlus className='w-4 h-4' />
                                 폴더 생성
@@ -236,15 +237,15 @@ export const FilesManager = ({ onFileSelect, onDownload }: FilesManagerProps = {
                     </div>
 
                     <div className='flex items-center gap-2 text-sm text-gray-600'>
-                        <button onClick={() => navigateTo(-1)} className='hover:text-blue-600 flex items-center gap-1'>
+                        <button onClick={navigateToRoot} className='hover:text-blue-600 flex items-center gap-1'>
                             <Home className='w-4 h-4' />
                             루트
                         </button>
-                        {getPathParts().map((part, index) => (
-                            <div key={index} className='flex items-center gap-2'>
+                        {breadcrumb.map((dir, index) => (
+                            <div key={dir.uuid} className='flex items-center gap-2'>
                                 <ChevronRight className='w-4 h-4' />
-                                <button onClick={() => navigateTo(index)} className='hover:text-blue-600'>
-                                    {part}
+                                <button onClick={() => navigateToDirectory(dir)} className='hover:text-blue-600'>
+                                    {dir.name}
                                 </button>
                             </div>
                         ))}
@@ -283,9 +284,9 @@ export const FilesManager = ({ onFileSelect, onDownload }: FilesManagerProps = {
                                 <tbody className='bg-white divide-y divide-gray-200'>
                                     {filesData.items.map((item) => (
                                         <tr
-                                            key={item.id}
+                                            key={item.uuid}
                                             className={`hover:bg-gray-50 transition-colors ${
-                                                selectedFileForDetail?.id === item.id ? 'bg-blue-50' : ''
+                                                selectedFileForDetail?.uuid === item.uuid ? 'bg-blue-50' : ''
                                             }`}
                                         >
                                             <td
@@ -300,7 +301,7 @@ export const FilesManager = ({ onFileSelect, onDownload }: FilesManagerProps = {
                                                     )}
                                                     <span
                                                         className={`text-sm font-medium ${
-                                                            selectedFileForDetail?.id === item.id
+                                                            selectedFileForDetail?.uuid === item.uuid
                                                                 ? 'text-blue-600'
                                                                 : 'text-gray-900'
                                                         }`}
