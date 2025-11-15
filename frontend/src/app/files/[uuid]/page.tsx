@@ -57,7 +57,7 @@ const FilesPage = () => {
     return (
         <>
             <Header />
-            <div className='flex min-h-screen bg-gray-50'>
+            <div className='flex min-h-screen bg-white'>
                 <LeftSidebar
                     currentItem='files'
                     isCollapsed={isSidebarCollapsed}
