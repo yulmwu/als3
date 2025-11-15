@@ -9,16 +9,16 @@ import Link from 'next/link'
 function LoginContent() {
     const router = useRouter()
     const searchParams = useSearchParams()
-    const { user, loading } = useAuth()
+    const { user, initializing, loading } = useAuth()
     const redirect = searchParams.get('redirect') || '/'
 
     useEffect(() => {
-        if (!loading && user) {
+        if (!initializing && user) {
             router.push(redirect)
         }
-    }, [user, loading, redirect, router])
+    }, [user, initializing, redirect, router])
 
-    if (loading) {
+    if (initializing) {
         return (
             <div className='min-h-screen flex items-center justify-center bg-gray-50'>
                 <div className='text-gray-500'>로딩 중...</div>

@@ -49,21 +49,21 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
         if (!validate()) return
         setError(null)
         setSuccess(false)
-        try {
-            await register({
-                username: values.username,
-                nickname: values.nickname,
-                email: values.email,
-                password: values.password,
-            })
-            setSuccess(true)
-            reset()
-            setTimeout(() => {
-                if (onSuccess) onSuccess()
-            }, 2000)
-        } catch (err: any) {
-            setError(err?.response?.data?.message || '회원가입에 실패했습니다.')
+        const result = await register({
+            username: values.username,
+            nickname: values.nickname,
+            email: values.email,
+            password: values.password,
+        })
+        if (!result.ok) {
+            setError(result.error.message || '회원가입에 실패했습니다.')
+            return
         }
+        setSuccess(true)
+        reset()
+        setTimeout(() => {
+            if (onSuccess) onSuccess()
+        }, 2000)
     }
 
     return (

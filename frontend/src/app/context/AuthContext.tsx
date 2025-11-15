@@ -2,13 +2,15 @@
 
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react'
 import { getMe, loginUser, logout, registerUser, GetMeResponse } from '@/api/auth'
+import type { ApiResult } from '@/api/types'
 import { clearAccessToken, getAccessToken, setAccessToken } from '@/api/token'
 
 interface AuthContextProps {
     user: GetMeResponse | null
+    initializing: boolean
     loading: boolean
-    login: (username: string, password: string) => Promise<void>
-    register: (data: RegisterFormData) => Promise<void>
+    login: (username: string, password: string) => Promise<ApiResult<void>>
+    register: (data: RegisterFormData) => Promise<ApiResult<void>>
     logout: () => Promise<void>
     setUser: React.Dispatch<React.SetStateAction<GetMeResponse | null>>
 }
@@ -24,7 +26,8 @@ const AuthContext = createContext<AuthContextProps | undefined>(undefined)
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const [user, setUser] = useState<GetMeResponse | null>(null)
-    const [loading, setLoading] = useState(true)
+    const [initializing, setInitializing] = useState(true)
+    const [loading, setLoading] = useState(false)
 
     const fetchMe = async () => {
         try {
@@ -33,7 +36,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         } catch {
             setUser(null)
         } finally {
-            setLoading(false)
+            setInitializing(false)
         }
     }
 
@@ -41,36 +44,36 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (getAccessToken()) {
             fetchMe()
         } else {
-            setLoading(false)
+            setInitializing(false)
             setUser(null)
         }
     }, [])
 
-    const login = async (username: string, password: string) => {
+    const login = async (username: string, password: string): Promise<ApiResult<void>> => {
         setLoading(true)
         try {
             const result = await loginUser(username, password)
-            setAccessToken(result.accessToken)
+            if (!result.ok) {
+                console.warn('Login failed:', result.error)
+                return { ok: false, error: result.error }
+            }
+            setAccessToken(result.data.accessToken)
             await fetchMe()
-        } catch (error: any) {
-            console.error('Login failed:', error)
-            const err = new Error(error?.response?.data?.message || error?.message || 'Login failed')
-            ;(err as any).response = error?.response
-            throw err
+            return { ok: true, data: undefined }
         } finally {
             setLoading(false)
         }
     }
 
-    const register = async (data: RegisterFormData) => {
+    const register = async (data: RegisterFormData): Promise<ApiResult<void>> => {
         setLoading(true)
         try {
-            await registerUser(data.username, data.email, data.password, data.nickname)
-        } catch (error: any) {
-            console.error('Register failed:', error)
-            const err = new Error(error?.response?.data?.message || error?.message || 'Registration failed')
-            ;(err as any).response = error?.response
-            throw err
+            const result = await registerUser(data.username, data.email, data.password, data.nickname)
+            if (!result.ok) {
+                console.warn('Register failed:', result.error)
+                return { ok: false, error: result.error }
+            }
+            return { ok: true, data: undefined }
         } finally {
             setLoading(false)
         }
@@ -88,7 +91,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
 
     return (
-        <AuthContext.Provider value={{ user, loading, login, register, logout: handleLogout, setUser }}>
+        <AuthContext.Provider value={{ user, initializing, loading, login, register, logout: handleLogout, setUser }}>
             {children}
         </AuthContext.Provider>
     )

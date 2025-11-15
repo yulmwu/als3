@@ -2,7 +2,7 @@
 
 import { Search, Plus, Menu, LogIn } from 'lucide-react'
 import { useAuth } from '@/app/context/AuthContext'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
@@ -17,6 +17,15 @@ export function Header(props: HeaderProps) {
     const { user, logout, loading } = useAuth()
     const [search, setSearch] = useState(props.searchQuery ?? '')
     const pathname = usePathname()
+    const [loginHref, setLoginHref] = useState('/login')
+
+    useEffect(() => {
+        if (pathname && pathname !== '/') {
+            setLoginHref(`/login?redirect=${encodeURIComponent(pathname)}`)
+        } else {
+            setLoginHref('/login')
+        }
+    }, [pathname])
 
     const handleSearch = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === 'Enter' && search.trim().length > 0) {
@@ -71,7 +80,7 @@ export function Header(props: HeaderProps) {
                         ) : (
                             <>
                                 <Link
-                                    href={`/login${pathname !== '/' ? `?redirect=${encodeURIComponent(pathname)}` : ''}`}
+                                    href={loginHref}
                                     className='w-9 md:w-auto h-9 flex-shrink-0 flex items-center justify-center gap-1 md:px-3 md:py-2 bg-gray-100 hover:bg-gray-200 rounded-full text-gray-700'
                                     aria-label='로그인'
                                 >

@@ -33,13 +33,13 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
         e.preventDefault()
         if (!validate()) return
         setError(null)
-        try {
-            await login(values.username, values.password)
-            reset()
-            if (onSuccess) onSuccess()
-        } catch (err: any) {
-            setError(err?.response?.data?.message || '로그인에 실패했습니다.')
+        const result = await login(values.username, values.password)
+        if (!result.ok) {
+            setError(result.error.message || '로그인에 실패했습니다.')
+            return
         }
+        reset()
+        if (onSuccess) onSuccess()
     }
 
     return (
