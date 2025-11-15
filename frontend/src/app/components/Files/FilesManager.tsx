@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
@@ -28,6 +28,7 @@ import {
     MoreHorizontal,
     X as XIcon,
     AlertTriangle,
+    Plus,
 } from 'lucide-react'
 import { useAuth } from '@/app/context/AuthContext'
 
@@ -42,16 +43,17 @@ export const FilesManager = ({ currentUuid, onFileSelect, onDownload }: FilesMan
     const searchParams = useSearchParams()
     const { user, loading: authLoading } = useAuth()
     const [page, setPage] = useState(1)
-    const [showCreateDialog, setShowCreateDialog] = useState(false)
-    const [showUploadDialog, setShowUploadDialog] = useState(false)
     const [openMenuUuid, setOpenMenuUuid] = useState<string | null>(null)
     const [menuPosition, setMenuPosition] = useState<{ left: number; top: number }>({ left: 0, top: 0 })
     const [confirmDeleteUuid, setConfirmDeleteUuid] = useState<string | null>(null)
     const [selectedFileForDetail, setSelectedFileForDetail] = useState<FileItem | null>(null)
     const [newFolderName, setNewFolderName] = useState('')
-    const [selectedFile, setSelectedFile] = useState<File | null>(null)
     const [error, setError] = useState<string | null>(null)
     const [breadcrumb, setBreadcrumb] = useState<FileItem[]>([])
+    const [openCreateMenu, setOpenCreateMenu] = useState(false)
+    const [createMenuPos, setCreateMenuPos] = useState<{ left: number; top: number }>({ left: 0, top: 0 })
+    const [showInlineCreate, setShowInlineCreate] = useState(false)
+    const fileInputRef = useRef<HTMLInputElement | null>(null)
 
     const queryClient = useQueryClient()
 
@@ -117,8 +119,9 @@ export const FilesManager = ({ currentUuid, onFileSelect, onDownload }: FilesMan
         mutationFn: (name: string) => createDirectory({ name, parentUuid: currentUuid }),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['files', currentUuid] })
-            setShowCreateDialog(false)
             setNewFolderName('')
+            setOpenCreateMenu(false)
+            setShowInlineCreate(false)
             setError(null)
         },
         onError: (error: any) => {
@@ -130,8 +133,8 @@ export const FilesManager = ({ currentUuid, onFileSelect, onDownload }: FilesMan
         mutationFn: (file: File) => uploadFile(file, currentUuid),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['files', currentUuid] })
-            setShowUploadDialog(false)
-            setSelectedFile(null)
+            setOpenCreateMenu(false)
+            setShowInlineCreate(false)
             setError(null)
         },
         onError: (error: any) => {
@@ -158,10 +161,16 @@ export const FilesManager = ({ currentUuid, onFileSelect, onDownload }: FilesMan
         }
     }
 
-    const handleUploadFile = () => {
-        if (selectedFile) {
+    const handleChooseFile = () => {
+        fileInputRef.current?.click()
+    }
+
+    const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0]
+        if (file) {
             setError(null)
-            uploadFileMutation.mutate(selectedFile)
+            uploadFileMutation.mutate(file)
+            e.currentTarget.value = ''
         }
     }
 
@@ -240,37 +249,48 @@ export const FilesManager = ({ currentUuid, onFileSelect, onDownload }: FilesMan
     }
 
     return (
-        <div className='max-w-7xl mx-auto p-6'>
-            <div className='bg-white rounded-lg shadow'>
-                <div className='p-6 border-b border-gray-200'>
-                    <div className='flex items-center justify-between mb-4'>
-                        <h1 className='text-2xl font-bold text-gray-900'>내 파일</h1>
-                        <div className='flex gap-2'>
+        <div className='max-w-7xl mx-auto'>
+            <div className='bg-white'>
+                <div className='p-4 sm:p-6'>
+                    <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4'>
+                        <h1 className='text-xl sm:text-2xl font-bold text-gray-900'>내 파일</h1>
+                        <div className='flex gap-2' data-create-menu-anchor='true'>
                             <button
-                                onClick={() => setShowUploadDialog(true)}
-                                className='px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 flex items-center gap-2'
+                                onClick={(e) => {
+                                    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+                                    const width = Math.min(288, window.innerWidth - 16)
+                                    const left = Math.min(
+                                        window.innerWidth - width - 8,
+                                        Math.max(8, rect.right - width),
+                                    )
+                                    const top = rect.bottom + 8
+                                    setCreateMenuPos({ left, top })
+                                    setOpenCreateMenu((p) => !p)
+                                    setShowInlineCreate(false)
+                                }}
+                                className='px-3 sm:px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 flex items-center gap-2 text-sm sm:text-base whitespace-nowrap'
                             >
-                                <Upload className='w-4 h-4' />
-                                파일 업로드
-                            </button>
-                            <button
-                                onClick={() => setShowCreateDialog(true)}
-                                className='px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 flex items-center gap-2'
-                            >
-                                <FolderPlus className='w-4 h-4' />
-                                폴더 생성
+                                <Plus className='w-4 h-4' />
+                                <span className='hidden xs:inline'>새로 만들기</span>
+                                <span className='xs:hidden'>만들기</span>
                             </button>
                         </div>
                     </div>
 
-                    <div className='flex items-center gap-2 text-sm text-gray-600'>
-                        <button onClick={navigateToRoot} className='hover:text-blue-600 flex items-center gap-1'>
-                            <Home className='w-4 h-4' />
+                    <div className='flex items-center gap-1 sm:gap-2 text-xs sm:text-sm text-gray-600 overflow-x-auto pb-1 scrollbar-thin'>
+                        <button
+                            onClick={navigateToRoot}
+                            className='hover:text-blue-600 flex items-center gap-1 flex-shrink-0'
+                        >
+                            <Home className='w-3 h-3 sm:w-4 sm:h-4' />
                         </button>
                         {breadcrumb.map((dir, index) => (
-                            <div key={dir.uuid} className='flex items-center gap-2'>
-                                <ChevronRight className='w-4 h-4' />
-                                <button onClick={() => navigateToDirectory(dir)} className='hover:text-blue-600'>
+                            <div key={dir.uuid} className='flex items-center gap-1 sm:gap-2 flex-shrink-0'>
+                                <ChevronRight className='w-3 h-3 sm:w-4 sm:h-4' />
+                                <button
+                                    onClick={() => navigateToDirectory(dir)}
+                                    className='hover:text-blue-600 truncate max-w-[120px] sm:max-w-none'
+                                >
                                     {dir.name}
                                 </button>
                             </div>
@@ -278,7 +298,7 @@ export const FilesManager = ({ currentUuid, onFileSelect, onDownload }: FilesMan
                     </div>
                 </div>
 
-                <div className='p-6'>
+                <div className='px-4 sm:px-6'>
                     {isLoading ? (
                         <div className='text-center py-12'>
                             <div className='text-gray-500'>로딩 중...</div>
@@ -289,20 +309,20 @@ export const FilesManager = ({ currentUuid, onFileSelect, onDownload }: FilesMan
                             <div className='text-gray-500'>이 폴더는 비어있습니다</div>
                         </div>
                     ) : (
-                        <div className='overflow-x-auto overflow-y-visible'>
-                            <table className='w-full'>
+                        <div className='overflow-x-auto overflow-y-visible -mx-4 sm:mx-0'>
+                            <table className='w-full min-w-full'>
                                 <thead className='bg-gray-50 border-b border-gray-200'>
                                     <tr>
-                                        <th className='px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
+                                        <th className='px-3 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
                                             이름
                                         </th>
-                                        <th className='px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
+                                        <th className='hidden md:table-cell px-3 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
                                             크기
                                         </th>
-                                        <th className='px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
+                                        <th className='hidden lg:table-cell px-3 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
                                             수정일
                                         </th>
-                                        <th className='px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider'>
+                                        <th className='px-3 sm:px-4 py-2 sm:py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider'>
                                             작업
                                         </th>
                                     </tr>
@@ -316,17 +336,17 @@ export const FilesManager = ({ currentUuid, onFileSelect, onDownload }: FilesMan
                                             }`}
                                         >
                                             <td
-                                                className='px-4 py-4 whitespace-nowrap cursor-pointer'
+                                                className='px-3 sm:px-4 py-3 sm:py-4 cursor-pointer'
                                                 onClick={() => handleItemClick(item)}
                                             >
-                                                <div className='flex items-center gap-3'>
+                                                <div className='flex items-center gap-2 sm:gap-3 min-w-0'>
                                                     {item.type === 'directory' ? (
-                                                        <Folder className='w-5 h-5 text-blue-500' />
+                                                        <Folder className='w-4 h-4 sm:w-5 sm:h-5 text-blue-500 flex-shrink-0' />
                                                     ) : (
-                                                        <File className='w-5 h-5 text-gray-400' />
+                                                        <File className='w-4 h-4 sm:w-5 sm:h-5 text-gray-400 flex-shrink-0' />
                                                     )}
                                                     <span
-                                                        className={`text-sm font-medium ${
+                                                        className={`text-xs sm:text-sm font-medium truncate ${
                                                             selectedFileForDetail?.uuid === item.uuid
                                                                 ? 'text-blue-600'
                                                                 : 'text-gray-900'
@@ -336,13 +356,13 @@ export const FilesManager = ({ currentUuid, onFileSelect, onDownload }: FilesMan
                                                     </span>
                                                 </div>
                                             </td>
-                                            <td className='px-4 py-4 whitespace-nowrap text-sm text-gray-500'>
+                                            <td className='hidden md:table-cell px-3 sm:px-4 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-500'>
                                                 {item.type === 'directory' ? '-' : formatFileSize(item.size)}
                                             </td>
-                                            <td className='px-4 py-4 whitespace-nowrap text-sm text-gray-500'>
+                                            <td className='hidden lg:table-cell px-3 sm:px-4 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-500'>
                                                 {formatDate(item.updatedAt)}
                                             </td>
-                                            <td className='px-4 py-4 whitespace-nowrap text-right text-sm font-medium'>
+                                            <td className='px-3 sm:px-4 py-3 sm:py-4 whitespace-nowrap text-right text-sm font-medium'>
                                                 <div
                                                     className='relative flex items-center justify-end'
                                                     data-menu-uuid={item.uuid}
@@ -352,7 +372,7 @@ export const FilesManager = ({ currentUuid, onFileSelect, onDownload }: FilesMan
                                                             e.stopPropagation()
                                                             const btn = e.currentTarget as HTMLElement
                                                             const rect = btn.getBoundingClientRect()
-                                                            const menuWidth = 256
+                                                            const menuWidth = Math.min(256, window.innerWidth - 16)
                                                             const estimatedHeight = item.type === 'file' ? 84 : 44
                                                             const spaceBelow = window.innerHeight - rect.bottom
                                                             const openUp = spaceBelow < estimatedHeight + 12
@@ -369,17 +389,17 @@ export const FilesManager = ({ currentUuid, onFileSelect, onDownload }: FilesMan
                                                             )
                                                             setConfirmDeleteUuid(null)
                                                         }}
-                                                        className='p-2 hover:bg-gray-100 rounded'
+                                                        className='p-1.5 sm:p-2 hover:bg-gray-100 rounded touch-manipulation'
                                                         title='메뉴'
                                                     >
-                                                        <MoreHorizontal className='w-5 h-5 text-gray-600' />
+                                                        <MoreHorizontal className='w-4 h-4 sm:w-5 sm:h-5 text-gray-600' />
                                                     </button>
 
                                                     {openMenuUuid === item.uuid &&
                                                         createPortal(
                                                             <div
                                                                 data-menu-popup={item.uuid}
-                                                                className='fixed z-[9999] w-64 bg-white border border-gray-200 rounded-md shadow-lg py-1'
+                                                                className='fixed z-[9999] w-56 sm:w-64 bg-white border border-gray-200 rounded-md shadow-lg py-1'
                                                                 style={{
                                                                     left: menuPosition.left,
                                                                     top: menuPosition.top,
@@ -399,9 +419,10 @@ export const FilesManager = ({ currentUuid, onFileSelect, onDownload }: FilesMan
                                                                             다운로드
                                                                         </button>
                                                                     )}
-                                                                {confirmDeleteUuid !== item.uuid && (
-                                                                    <div className='my-1 h-px bg-gray-100' />
-                                                                )}
+                                                                {confirmDeleteUuid !== item.uuid &&
+                                                                    item.type === 'file' && (
+                                                                        <div className='my-1 h-px bg-gray-100' />
+                                                                    )}
                                                                 {confirmDeleteUuid === item.uuid ? (
                                                                     <div className='px-3 py-2'>
                                                                         <div className='flex items-start gap-2 p-2 rounded-md bg-red-50 border border-red-100'>
@@ -464,12 +485,12 @@ export const FilesManager = ({ currentUuid, onFileSelect, onDownload }: FilesMan
                     )}
 
                     {filesData && filesData.totalPages > 1 && (
-                        <div className='flex justify-center gap-2 mt-6'>
+                        <div className='flex justify-center flex-wrap gap-2 mt-4 sm:mt-6'>
                             {Array.from({ length: filesData.totalPages }, (_, i) => i + 1).map((p) => (
                                 <button
                                     key={p}
                                     onClick={() => setPage(p)}
-                                    className={`px-4 py-2 rounded ${
+                                    className={`px-3 sm:px-4 py-2 rounded text-sm touch-manipulation ${
                                         p === page
                                             ? 'bg-blue-600 text-white'
                                             : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
@@ -483,114 +504,82 @@ export const FilesManager = ({ currentUuid, onFileSelect, onDownload }: FilesMan
                 </div>
             </div>
 
-            {showCreateDialog && (
-                <div className='fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50'>
-                    <div className='bg-white rounded-lg p-6 w-full max-w-md shadow-xl'>
-                        <h2 className='text-xl font-bold mb-4'>폴더 생성</h2>
-                        {error && (
-                            <div className='mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2 text-red-700'>
-                                <AlertCircle className='w-5 h-5 flex-shrink-0' />
-                                <span className='text-sm'>{error}</span>
-                            </div>
-                        )}
-                        <input
-                            type='text'
-                            value={newFolderName}
-                            onChange={(e) => setNewFolderName(e.target.value)}
-                            placeholder='폴더 이름'
-                            className='w-full px-4 py-2 border border-gray-300 rounded-lg mb-4 focus:outline-none focus:ring-2 focus:ring-green-500'
-                            onKeyDown={(e) =>
-                                e.key === 'Enter' && !createFolderMutation.isPending && handleCreateFolder()
-                            }
-                            disabled={createFolderMutation.isPending}
-                        />
-                        <div className='flex justify-end gap-2'>
-                            <button
-                                onClick={() => {
-                                    setShowCreateDialog(false)
-                                    setNewFolderName('')
-                                    setError(null)
-                                }}
-                                className='px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300'
-                                disabled={createFolderMutation.isPending}
-                            >
-                                취소
-                            </button>
-                            <button
-                                onClick={handleCreateFolder}
-                                disabled={!newFolderName.trim() || createFolderMutation.isPending}
-                                className='px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 flex items-center gap-2'
-                            >
-                                {createFolderMutation.isPending && <Loader2 className='w-4 h-4 animate-spin' />}
-                                생성
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
+            <input ref={fileInputRef} type='file' className='hidden' onChange={handleFileInputChange} />
 
-            {showUploadDialog && (
-                <div className='fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50'>
-                    <div className='bg-white rounded-lg p-6 w-full max-w-md shadow-xl'>
-                        <h2 className='text-xl font-bold mb-4'>파일 업로드</h2>
-                        {error && (
-                            <div className='mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2 text-red-700'>
-                                <AlertCircle className='w-5 h-5 flex-shrink-0' />
-                                <span className='text-sm'>{error}</span>
-                            </div>
-                        )}
-                        <input
-                            type='file'
-                            onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
-                            className='w-full px-4 py-2 border border-gray-300 rounded-lg mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500'
-                            disabled={uploadFileMutation.isPending}
-                        />
-                        {selectedFile && (
-                            <div className='text-sm text-gray-600 mb-4 p-3 bg-gray-50 rounded-lg'>
-                                <div className='font-medium'>선택된 파일:</div>
-                                <div className='mt-1'>{selectedFile.name}</div>
-                                <div className='text-xs text-gray-500 mt-1'>
-                                    크기: {formatFileSize(selectedFile.size)}
-                                </div>
-                            </div>
-                        )}
-                        {uploadFileMutation.isPending && (
-                            <div className='mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-center gap-2 text-blue-700'>
-                                <Loader2 className='w-5 h-5 flex-shrink-0 animate-spin' />
-                                <span className='text-sm'>업로드 중...</span>
-                            </div>
-                        )}
-                        <div className='flex justify-end gap-2'>
+            {openCreateMenu && (
+                <div
+                    data-create-menu-popup='true'
+                    className='fixed z-[9999] w-64 sm:w-72 bg-white border border-gray-200 rounded-md shadow-lg py-2'
+                    style={{ left: createMenuPos.left, top: createMenuPos.top }}
+                >
+                    {!showInlineCreate && (
+                        <>
                             <button
-                                onClick={() => {
-                                    setShowUploadDialog(false)
-                                    setSelectedFile(null)
-                                    setError(null)
-                                }}
-                                className='px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300'
+                                className='w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2'
+                                onClick={() => handleChooseFile()}
                                 disabled={uploadFileMutation.isPending}
                             >
-                                취소
+                                <Upload className='w-4 h-4 text-blue-600' /> 파일 업로드
                             </button>
                             <button
-                                onClick={handleUploadFile}
-                                disabled={!selectedFile || uploadFileMutation.isPending}
-                                className='px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2'
+                                className='w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2'
+                                onClick={() => setShowInlineCreate(true)}
                             >
-                                {uploadFileMutation.isPending && <Loader2 className='w-4 h-4 animate-spin' />}
-                                업로드
+                                <FolderPlus className='w-4 h-4 text-gray-600' /> 폴더 생성
                             </button>
+                        </>
+                    )}
+
+                    {showInlineCreate && (
+                        <div className='px-3 pt-2'>
+                            <div className='text-xs text-gray-600 mb-2'>새 폴더 이름</div>
+                            <input
+                                type='text'
+                                value={newFolderName}
+                                onChange={(e) => setNewFolderName(e.target.value)}
+                                placeholder='폴더 이름 입력'
+                                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-200'
+                                onKeyDown={(e) =>
+                                    e.key === 'Enter' && !createFolderMutation.isPending && handleCreateFolder()
+                                }
+                                disabled={createFolderMutation.isPending}
+                                autoFocus
+                            />
+                            <div className='mt-2 mb-1 flex justify-end gap-2'>
+                                <button
+                                    className='h-8 px-3 text-xs rounded bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                    onClick={() => {
+                                        setShowInlineCreate(false)
+                                        setNewFolderName('')
+                                    }}
+                                    disabled={createFolderMutation.isPending}
+                                >
+                                    취소
+                                </button>
+                                <button
+                                    className='h-8 px-3 text-xs rounded bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 flex items-center gap-1'
+                                    onClick={handleCreateFolder}
+                                    disabled={!newFolderName.trim() || createFolderMutation.isPending}
+                                >
+                                    {createFolderMutation.isPending && <Loader2 className='w-3 h-3 animate-spin' />}
+                                    생성
+                                </button>
+                            </div>
                         </div>
-                    </div>
+                    )}
                 </div>
             )}
 
-            {error && !showCreateDialog && !showUploadDialog && (
-                <div className='fixed bottom-6 right-6 z-30 max-w-sm'>
+            {error && (
+                <div className='fixed bottom-4 sm:bottom-6 right-4 sm:right-6 left-4 sm:left-auto z-30 max-w-sm'>
                     <div className='rounded-lg border border-red-200 bg-white shadow-lg p-3 flex items-start gap-2'>
-                        <AlertCircle className='w-5 h-5 text-red-600 mt-0.5' />
-                        <div className='text-sm text-red-700 flex-1'>{error}</div>
-                        <button className='p-1 hover:bg-gray-100 rounded' onClick={() => setError(null)} title='닫기'>
+                        <AlertCircle className='w-5 h-5 text-red-600 mt-0.5 flex-shrink-0' />
+                        <div className='text-xs sm:text-sm text-red-700 flex-1'>{error}</div>
+                        <button
+                            className='p-1 hover:bg-gray-100 rounded flex-shrink-0 touch-manipulation'
+                            onClick={() => setError(null)}
+                            title='닫기'
+                        >
                             <XIcon className='w-4 h-4 text-gray-500' />
                         </button>
                     </div>

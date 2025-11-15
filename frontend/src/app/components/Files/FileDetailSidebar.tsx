@@ -69,7 +69,7 @@ export const FileDetailSidebar = ({ file, onClose, onDownload }: FileDetailSideb
                     {file.type === 'file' && (
                         <button
                             onClick={() => onDownload(file)}
-                            className='w-full px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2 transition-colors'
+                            className='w-full px-4 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 flex items-center justify-center gap-2 transition-colors'
                         >
                             <Download className='w-5 h-5' />
                             <span className='font-medium'>다운로드</span>
