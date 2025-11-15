@@ -52,33 +52,23 @@ export class FilesService {
         })
 
         if (existingItem) {
-            throw new BadRequestException('A file with this name already exists in this directory')
+            throw new BadRequestException('A file with this name already exists in this location')
         }
 
-        let s3Key: string
-        try {
-            s3Key = await this.storageService.uploadFile(file, userId, parentPath)
-        } catch (error) {
-            throw new BadRequestException('Failed to upload file to storage')
-        }
+        const s3Key = await this.storageService.uploadFile(file, userId, parentPath)
 
-        try {
-            const fileEntity = this.fileRepo.create({
-                name: file.originalname,
-                type: FileType.FILE,
-                s3Key,
-                mimeType: file.mimetype,
-                size: file.size,
-                path: parentPath,
-                parentId,
-                userId,
-            })
+        const fileEntity = this.fileRepo.create({
+            name: file.originalname,
+            type: FileType.FILE,
+            s3Key,
+            mimeType: file.mimetype,
+            size: file.size,
+            path: parentPath,
+            parentId,
+            userId,
+        })
 
-            return await this.fileRepo.save(fileEntity)
-        } catch (error) {
-            await this.storageService.deleteFile(s3Key).catch(() => {})
-            throw new BadRequestException('Failed to save file metadata')
-        }
+        return await this.fileRepo.save(fileEntity)
     }
 
     async createDirectory(dto: CreateDirectoryRequestDto, userId: number): Promise<FileResponseDto> {
