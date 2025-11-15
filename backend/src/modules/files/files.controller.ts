@@ -1,0 +1,206 @@
+import {
+    Controller,
+    Post,
+    Get,
+    Delete,
+    Query,
+    Param,
+    Body,
+    UseGuards,
+    Request,
+    UseInterceptors,
+    UploadedFile,
+} from '@nestjs/common'
+import { FileInterceptor } from '@nestjs/platform-express'
+import {
+    ApiTags,
+    ApiOperation,
+    ApiResponse,
+    ApiBearerAuth,
+    ApiConsumes,
+    ApiBody,
+    ApiNotFoundResponse,
+    ApiForbiddenResponse,
+    ApiBadRequestResponse,
+    ApiProperty,
+} from '@nestjs/swagger'
+import { IsUUID } from 'class-validator'
+import { JwtAuthGuard } from 'common/guards/jwt-auth.guard'
+import { AuthenticatedRequest } from 'common/types/express-request.interface'
+import { FilesService } from './files.service'
+import { IdDto } from 'common/dto/base.dto'
+import {
+    FileResponseDto,
+    FileWithDownloadUrlResponseDto,
+    ListFilesResponseDto,
+    CreateDirectoryRequestDto,
+    ListFilesRequestDto,
+} from './dto'
+
+class UuidDto {
+    @ApiProperty({ example: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11' })
+    @IsUUID()
+    uuid: string
+}
+
+@ApiTags('Files')
+@Controller('files')
+@UseGuards(JwtAuthGuard)
+@ApiBearerAuth()
+export class FilesController {
+    constructor(private filesService: FilesService) {}
+
+    @Post('upload')
+    @UseInterceptors(FileInterceptor('file'))
+    @ApiConsumes('multipart/form-data')
+    @ApiOperation({ summary: 'Upload a file to a specific directory' })
+    @ApiBody({
+        schema: {
+            type: 'object',
+            required: ['file'],
+            properties: {
+                file: {
+                    type: 'string',
+                    format: 'binary',
+                    description: 'The file to upload',
+                },
+                parentUuid: {
+                    type: 'string',
+                    format: 'uuid',
+                    description: 'The parent directory UUID (omit for root)',
+                    example: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+                },
+            },
+        },
+    })
+    @ApiResponse({ status: 201, description: 'File uploaded successfully.', type: FileResponseDto })
+    @ApiBadRequestResponse({
+        description: 'Invalid file, parent does not exist, or file with same name already exists.',
+    })
+    @ApiNotFoundResponse({ description: 'The specified parent directory does not exist.' })
+    async uploadFile(
+        @UploadedFile() file: Express.Multer.File,
+        @Body('parentUuid') parentUuid: string,
+        @Request() req: AuthenticatedRequest,
+    ): Promise<FileResponseDto> {
+        return this.filesService.uploadFile(file, req.user.userId, parentUuid)
+    }
+
+    @Post('directory')
+    @ApiOperation({ summary: 'Create a new directory' })
+    @ApiBody({
+        type: CreateDirectoryRequestDto,
+        examples: {
+            root: {
+                summary: 'Create directory in root',
+                value: {
+                    name: 'my-folder',
+                },
+            },
+            nested: {
+                summary: 'Create nested directory',
+                value: {
+                    name: 'subfolder',
+                    parentUuid: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+                },
+            },
+        },
+    })
+    @ApiResponse({ status: 201, description: 'Directory created successfully.', type: FileResponseDto })
+    @ApiBadRequestResponse({
+        description:
+            'Invalid directory name (contains special characters, slashes, or is empty), parent does not exist, or directory with same name already exists.',
+    })
+    @ApiNotFoundResponse({ description: 'The parent directory does not exist.' })
+    createDirectory(
+        @Body() dto: CreateDirectoryRequestDto,
+        @Request() req: AuthenticatedRequest,
+    ): Promise<FileResponseDto> {
+        return this.filesService.createDirectory(dto, req.user.userId)
+    }
+
+    @Get()
+    @ApiOperation({ summary: 'List files and directories' })
+    @ApiResponse({ status: 200, description: 'Return list of files and directories.', type: ListFilesResponseDto })
+    listFiles(@Query() dto: ListFilesRequestDto, @Request() req: AuthenticatedRequest): Promise<ListFilesResponseDto> {
+        return this.filesService.listFiles(dto, req.user.userId)
+    }
+
+    @Get(':id')
+    @ApiOperation({ summary: 'Get file information by ID' })
+    @ApiResponse({ status: 200, description: 'Return file information.', type: FileResponseDto })
+    @ApiNotFoundResponse({ description: 'File not found.' })
+    @ApiForbiddenResponse({ description: 'You do not have permission to access this file.' })
+    getFile(@Param() { id }: IdDto, @Request() req: AuthenticatedRequest): Promise<FileResponseDto> {
+        return this.filesService.getFile(id, req.user.userId)
+    }
+
+    @Get('uuid/:uuid')
+    @ApiOperation({ summary: 'Get file information by UUID' })
+    @ApiResponse({ status: 200, description: 'Return file information.', type: FileResponseDto })
+    @ApiNotFoundResponse({ description: 'File not found.' })
+    @ApiForbiddenResponse({ description: 'You do not have permission to access this file.' })
+    getFileByUuid(@Param() { uuid }: UuidDto, @Request() req: AuthenticatedRequest): Promise<FileResponseDto> {
+        return this.filesService.getFileByUuid(uuid, req.user.userId)
+    }
+
+    @Get(':id/download')
+    @ApiOperation({ summary: 'Get download URL for a file' })
+    @ApiResponse({
+        status: 200,
+        description: 'Return file information with presigned download URL.',
+        type: FileWithDownloadUrlResponseDto,
+    })
+    @ApiNotFoundResponse({ description: 'File not found.' })
+    @ApiForbiddenResponse({ description: 'You do not have permission to access this file.' })
+    @ApiBadRequestResponse({ description: 'Cannot download a directory.' })
+    getDownloadUrl(
+        @Param() { id }: IdDto,
+        @Request() req: AuthenticatedRequest,
+    ): Promise<FileWithDownloadUrlResponseDto> {
+        return this.filesService.getDownloadUrl(id, req.user.userId)
+    }
+
+    @Get('uuid/:uuid/download')
+    @ApiOperation({ summary: 'Get download URL for a file by UUID' })
+    @ApiResponse({
+        status: 200,
+        description: 'Return file information with presigned download URL.',
+        type: FileWithDownloadUrlResponseDto,
+    })
+    @ApiNotFoundResponse({ description: 'File not found.' })
+    @ApiForbiddenResponse({ description: 'You do not have permission to access this file.' })
+    @ApiBadRequestResponse({ description: 'Cannot download a directory.' })
+    async getDownloadUrlByUuid(
+        @Param() { uuid }: UuidDto,
+        @Request() req: AuthenticatedRequest,
+    ): Promise<FileWithDownloadUrlResponseDto> {
+        const file = await this.filesService.getFileByUuid(uuid, req.user.userId)
+        return this.filesService.getDownloadUrl(file.id, req.user.userId)
+    }
+
+    @Get('uuid/:uuid/breadcrumb')
+    @ApiOperation({ summary: 'Get breadcrumb trail for a directory' })
+    @ApiResponse({
+        status: 200,
+        description: 'Return breadcrumb trail from root to the specified directory.',
+        type: [FileResponseDto],
+    })
+    @ApiNotFoundResponse({ description: 'Directory not found.' })
+    @ApiForbiddenResponse({ description: 'You do not have permission to access this directory.' })
+    @ApiBadRequestResponse({ description: 'Breadcrumb is only available for directories.' })
+    getBreadcrumb(@Param() { uuid }: UuidDto, @Request() req: AuthenticatedRequest): Promise<FileResponseDto[]> {
+        return this.filesService.getBreadcrumb(uuid, req.user.userId)
+    }
+
+    @Delete(':id')
+    @ApiOperation({ summary: 'Delete a file or directory' })
+    @ApiResponse({ status: 200, description: 'File or directory deleted successfully.' })
+    @ApiNotFoundResponse({ description: 'File not found.' })
+    @ApiForbiddenResponse({ description: 'You do not have permission to delete this file.' })
+    @ApiBadRequestResponse({ description: 'Cannot delete a non-empty directory.' })
+    async deleteFile(@Param() { id }: IdDto, @Request() req: AuthenticatedRequest): Promise<{ message: string }> {
+        await this.filesService.deleteFile(id, req.user.userId)
+        return { message: 'File or directory deleted successfully' }
+    }
+}
