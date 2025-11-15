@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
@@ -23,6 +24,9 @@ import {
     Home,
     AlertCircle,
     Loader2,
+    MoreHorizontal,
+    X as XIcon,
+    AlertTriangle,
 } from 'lucide-react'
 import { useAuth } from '@/app/context/AuthContext'
 
@@ -38,8 +42,9 @@ export const FilesManager = ({ currentUuid, onFileSelect, onDownload }: FilesMan
     const [page, setPage] = useState(1)
     const [showCreateDialog, setShowCreateDialog] = useState(false)
     const [showUploadDialog, setShowUploadDialog] = useState(false)
-    const [showDeleteDialog, setShowDeleteDialog] = useState(false)
-    const [itemToDelete, setItemToDelete] = useState<FileItem | null>(null)
+    const [openMenuUuid, setOpenMenuUuid] = useState<string | null>(null)
+    const [menuPosition, setMenuPosition] = useState<{ left: number; top: number }>({ left: 0, top: 0 })
+    const [confirmDeleteUuid, setConfirmDeleteUuid] = useState<string | null>(null)
     const [selectedFileForDetail, setSelectedFileForDetail] = useState<FileItem | null>(null)
     const [newFolderName, setNewFolderName] = useState('')
     const [selectedFile, setSelectedFile] = useState<File | null>(null)
@@ -53,6 +58,21 @@ export const FilesManager = ({ currentUuid, onFileSelect, onDownload }: FilesMan
             router.push('/login?redirect=/files')
         }
     }, [user, authLoading, router])
+
+    useEffect(() => {
+        const handleDocClick = (e: MouseEvent) => {
+            if (!openMenuUuid) return
+            const target = e.target as HTMLElement
+            const container = document.querySelector(`[data-menu-uuid="${openMenuUuid}"]`) as HTMLElement | null
+            const popup = document.querySelector(`[data-menu-popup="${openMenuUuid}"]`) as HTMLElement | null
+            if ((container && target && container.contains(target)) || (popup && target && popup.contains(target)))
+                return
+            setOpenMenuUuid(null)
+            setConfirmDeleteUuid(null)
+        }
+        document.addEventListener('click', handleDocClick)
+        return () => document.removeEventListener('click', handleDocClick)
+    }, [openMenuUuid])
 
     useEffect(() => {
         if (!currentUuid) {
@@ -109,8 +129,7 @@ export const FilesManager = ({ currentUuid, onFileSelect, onDownload }: FilesMan
         mutationFn: (id: number) => deleteFile(id),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['files', currentUuid] })
-            setShowDeleteDialog(false)
-            setItemToDelete(null)
+            setOpenMenuUuid(null)
             setError(null)
         },
         onError: (error: any) => {
@@ -132,16 +151,10 @@ export const FilesManager = ({ currentUuid, onFileSelect, onDownload }: FilesMan
         }
     }
 
-    const handleDeleteClick = (item: FileItem) => {
-        setItemToDelete(item)
-        setShowDeleteDialog(true)
-    }
-
-    const handleDeleteConfirm = () => {
-        if (itemToDelete) {
-            setError(null)
-            deleteMutation.mutate(itemToDelete.id)
-        }
+    const handleDelete = (item: FileItem) => {
+        setError(null)
+        setOpenMenuUuid(null)
+        deleteMutation.mutate(item.id)
     }
 
     const handleDownload = async (item: FileItem) => {
@@ -263,7 +276,7 @@ export const FilesManager = ({ currentUuid, onFileSelect, onDownload }: FilesMan
                             <div className='text-gray-500'>이 폴더는 비어있습니다</div>
                         </div>
                     ) : (
-                        <div className='overflow-x-auto'>
+                        <div className='overflow-x-auto overflow-y-visible'>
                             <table className='w-full'>
                                 <thead className='bg-gray-50 border-b border-gray-200'>
                                     <tr>
@@ -317,23 +330,117 @@ export const FilesManager = ({ currentUuid, onFileSelect, onDownload }: FilesMan
                                                 {formatDate(item.updatedAt)}
                                             </td>
                                             <td className='px-4 py-4 whitespace-nowrap text-right text-sm font-medium'>
-                                                <div className='flex items-center justify-end gap-2'>
-                                                    {item.type === 'file' && (
-                                                        <button
-                                                            onClick={() => handleDownload(item)}
-                                                            className='text-blue-600 hover:text-blue-900'
-                                                            title='다운로드'
-                                                        >
-                                                            <Download className='w-4 h-4' />
-                                                        </button>
-                                                    )}
+                                                <div
+                                                    className='relative flex items-center justify-end'
+                                                    data-menu-uuid={item.uuid}
+                                                >
                                                     <button
-                                                        onClick={() => handleDeleteClick(item)}
-                                                        className='text-red-600 hover:text-red-900'
-                                                        title='삭제'
+                                                        onClick={(e) => {
+                                                            e.stopPropagation()
+                                                            const btn = e.currentTarget as HTMLElement
+                                                            const rect = btn.getBoundingClientRect()
+                                                            const menuWidth = 256
+                                                            const estimatedHeight = item.type === 'file' ? 84 : 44
+                                                            const spaceBelow = window.innerHeight - rect.bottom
+                                                            const openUp = spaceBelow < estimatedHeight + 12
+                                                            const left = Math.min(
+                                                                window.innerWidth - menuWidth - 8,
+                                                                Math.max(8, rect.right - menuWidth),
+                                                            )
+                                                            const top = openUp
+                                                                ? Math.max(8, rect.top - estimatedHeight - 8)
+                                                                : rect.bottom + 8
+                                                            setMenuPosition({ left, top })
+                                                            setOpenMenuUuid((prev) =>
+                                                                prev === item.uuid ? null : item.uuid,
+                                                            )
+                                                            setConfirmDeleteUuid(null)
+                                                        }}
+                                                        className='p-2 hover:bg-gray-100 rounded'
+                                                        title='메뉴'
                                                     >
-                                                        <Trash2 className='w-4 h-4' />
+                                                        <MoreHorizontal className='w-5 h-5 text-gray-600' />
                                                     </button>
+
+                                                    {openMenuUuid === item.uuid &&
+                                                        createPortal(
+                                                            <div
+                                                                data-menu-popup={item.uuid}
+                                                                className='fixed z-[9999] w-64 bg-white border border-gray-200 rounded-md shadow-lg py-1'
+                                                                style={{
+                                                                    left: menuPosition.left,
+                                                                    top: menuPosition.top,
+                                                                }}
+                                                                onClick={(e) => e.stopPropagation()}
+                                                            >
+                                                                {confirmDeleteUuid !== item.uuid &&
+                                                                    item.type === 'file' && (
+                                                                        <button
+                                                                            className='w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2'
+                                                                            onClick={() => {
+                                                                                handleDownload(item)
+                                                                                setOpenMenuUuid(null)
+                                                                            }}
+                                                                        >
+                                                                            <Download className='w-4 h-4 text-blue-600' />{' '}
+                                                                            다운로드
+                                                                        </button>
+                                                                    )}
+                                                                {confirmDeleteUuid !== item.uuid && (
+                                                                    <div className='my-1 h-px bg-gray-100' />
+                                                                )}
+                                                                {confirmDeleteUuid === item.uuid ? (
+                                                                    <div className='px-3 py-2'>
+                                                                        <div className='flex items-start gap-2 p-2 rounded-md bg-red-50 border border-red-100'>
+                                                                            <AlertTriangle className='w-4 h-4 text-red-600 mt-0.5' />
+                                                                            <div className='text-xs text-red-700'>
+                                                                                <div className='font-medium'>
+                                                                                    정말 삭제할까요?
+                                                                                </div>
+                                                                                <div className='truncate text-[11px] text-red-600/80 mt-0.5'>
+                                                                                    {item.name}
+                                                                                </div>
+                                                                                {item.type === 'directory' && (
+                                                                                    <div className='text-[11px] mt-1'>
+                                                                                        폴더 내 모든 항목도 함께
+                                                                                        삭제됩니다.
+                                                                                    </div>
+                                                                                )}
+                                                                            </div>
+                                                                        </div>
+                                                                        <div className='mt-2 flex justify-end gap-2'>
+                                                                            <button
+                                                                                className='h-8 px-3 text-xs rounded bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                                                                onClick={() =>
+                                                                                    setConfirmDeleteUuid(null)
+                                                                                }
+                                                                                disabled={deleteMutation.isPending}
+                                                                            >
+                                                                                취소
+                                                                            </button>
+                                                                            <button
+                                                                                className='h-8 px-3 text-xs rounded bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 flex items-center gap-1'
+                                                                                onClick={() => handleDelete(item)}
+                                                                                disabled={deleteMutation.isPending}
+                                                                            >
+                                                                                {deleteMutation.isPending && (
+                                                                                    <Loader2 className='w-3 h-3 animate-spin' />
+                                                                                )}
+                                                                                삭제
+                                                                            </button>
+                                                                        </div>
+                                                                    </div>
+                                                                ) : (
+                                                                    <button
+                                                                        className='w-full px-3 py-2 text-left text-sm text-red-700 hover:bg-red-50 flex items-center gap-2'
+                                                                        onClick={() => setConfirmDeleteUuid(item.uuid)}
+                                                                    >
+                                                                        <Trash2 className='w-4 h-4' /> 삭제
+                                                                    </button>
+                                                                )}
+                                                            </div>,
+                                                            document.body,
+                                                        )}
                                                 </div>
                                             </td>
                                         </tr>
@@ -465,53 +572,15 @@ export const FilesManager = ({ currentUuid, onFileSelect, onDownload }: FilesMan
                 </div>
             )}
 
-            {showDeleteDialog && itemToDelete && (
-                <div className='fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50'>
-                    <div className='bg-white rounded-lg p-6 w-full max-w-md shadow-xl'>
-                        <h2 className='text-xl font-bold mb-4 text-red-600'>삭제 확인</h2>
-                        {error && (
-                            <div className='mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2 text-red-700'>
-                                <AlertCircle className='w-5 h-5 flex-shrink-0' />
-                                <span className='text-sm'>{error}</span>
-                            </div>
-                        )}
-                        <div className='mb-6'>
-                            <p className='text-gray-700 mb-2'>다음 항목을 삭제하시겠습니까?</p>
-                            <div className='p-3 bg-gray-50 rounded-lg flex items-center gap-2'>
-                                {itemToDelete.type === 'directory' ? (
-                                    <Folder className='w-5 h-5 text-blue-500' />
-                                ) : (
-                                    <File className='w-5 h-5 text-gray-400' />
-                                )}
-                                <span className='font-medium'>{itemToDelete.name}</span>
-                            </div>
-                            {itemToDelete.type === 'directory' && (
-                                <p className='text-sm text-red-600 mt-3'>
-                                    ⚠️ 폴더 내의 모든 파일과 하위 폴더도 함께 삭제됩니다.
-                                </p>
-                            )}
-                        </div>
-                        <div className='flex justify-end gap-2'>
-                            <button
-                                onClick={() => {
-                                    setShowDeleteDialog(false)
-                                    setItemToDelete(null)
-                                    setError(null)
-                                }}
-                                className='px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300'
-                                disabled={deleteMutation.isPending}
-                            >
-                                취소
-                            </button>
-                            <button
-                                onClick={handleDeleteConfirm}
-                                disabled={deleteMutation.isPending}
-                                className='px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 flex items-center gap-2'
-                            >
-                                {deleteMutation.isPending && <Loader2 className='w-4 h-4 animate-spin' />}
-                                삭제
-                            </button>
-                        </div>
+            {/* Inline error banner for non-modal actions */}
+            {error && !showCreateDialog && !showUploadDialog && (
+                <div className='fixed bottom-6 right-6 z-30 max-w-sm'>
+                    <div className='rounded-lg border border-red-200 bg-white shadow-lg p-3 flex items-start gap-2'>
+                        <AlertCircle className='w-5 h-5 text-red-600 mt-0.5' />
+                        <div className='text-sm text-red-700 flex-1'>{error}</div>
+                        <button className='p-1 hover:bg-gray-100 rounded' onClick={() => setError(null)} title='닫기'>
+                            <XIcon className='w-4 h-4 text-gray-500' />
+                        </button>
                     </div>
                 </div>
             )}

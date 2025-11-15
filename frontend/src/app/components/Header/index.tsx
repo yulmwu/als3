@@ -1,6 +1,6 @@
 'use client'
 
-import { Search, Plus, Menu, LogIn } from 'lucide-react'
+import { Search, Plus, Menu, LogIn, Cloud } from 'lucide-react'
 import { useAuth } from '@/app/context/AuthContext'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
@@ -50,10 +50,8 @@ export function Header(props: HeaderProps) {
 
                         <div className='hidden md:flex items-center space-x-2'>
                             <a href='/' className='flex items-center space-x-2'>
-                                <div className='w-8 h-8 bg-slate-600 rounded-full flex items-center justify-center flex-shrink-0'>
-                                    <span className='text-white font-bold text-sm'>7</span>
-                                </div>
-                                <span className='text-lg md:text-xl font-bold text-slate-600 truncate'>0725</span>
+                                <Cloud className='w-6 h-6 text-slate-600' />
+                                <span className='text-lg md:text-xl font-bold text-slate-600 truncate'>ALS3</span>
                             </a>
                         </div>
                     </div>
