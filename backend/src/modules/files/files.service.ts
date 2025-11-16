@@ -10,12 +10,14 @@ import {
     CreateDirectoryRequestDto,
     ListFilesRequestDto,
 } from './dto'
+import { RedisService } from 'common/redis/redis.service'
 
 @Injectable()
 export class FilesService {
     constructor(
         @InjectRepository(File) private fileRepo: Repository<File>,
         private storageService: StorageService,
+        private redisService: RedisService,
     ) {}
 
     async uploadFile(file: Express.Multer.File, userId: number, parentUuid?: string): Promise<FileResponseDto> {
@@ -300,6 +302,13 @@ export class FilesService {
     }
 
     async getBreadcrumb(uuid: string, userId: number): Promise<FileResponseDto[]> {
+        const cacheKey = `breadcrumb:${userId}:${uuid}`
+        const cached = await this.redisService.get(cacheKey)
+
+        if (cached) {
+            return JSON.parse(cached)
+        }
+
         const file = await this.getFileByUuid(uuid, userId)
 
         if (file.type !== FileType.DIRECTORY) {
@@ -325,6 +334,8 @@ export class FilesService {
             `,
             [file.id, userId],
         )
+
+        await this.redisService.set(cacheKey, JSON.stringify(breadcrumb), 3600)
 
         return breadcrumb
     }

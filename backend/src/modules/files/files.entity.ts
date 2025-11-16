@@ -39,7 +39,7 @@ export class File {
     @Column({ type: 'bigint', nullable: true })
     size?: number
 
-    @Column({ type: 'varchar', length: 2048, default: '/' })
+    @Column({ type: 'varchar', length: 1024, default: '/' })
     path: string
 
     @Column({ type: 'int', nullable: true })
