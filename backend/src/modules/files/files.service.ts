@@ -149,6 +149,7 @@ export class FilesService {
             page,
             limit,
             totalPages: Math.ceil(total / limit),
+            breadcrumb: await this.getBreadcrumb(userId, dto.parentUuid),
         }
     }
 
@@ -301,7 +302,11 @@ export class FilesService {
         return file
     }
 
-    async getBreadcrumb(uuid: string, userId: number): Promise<FileResponseDto[]> {
+    async getBreadcrumb(userId: number, uuid?: string): Promise<FileResponseDto[]> {
+        if (!uuid) {
+            return []
+        }
+
         const cacheKey = `breadcrumb:${userId}:${uuid}`
         const cached = await this.redisService.get(cacheKey)
 

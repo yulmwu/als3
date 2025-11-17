@@ -92,4 +92,10 @@ export class ListFilesResponseDto {
         example: 5,
     })
     totalPages: number
+
+    @ApiProperty({
+        description: 'Breadcrumb path from root to current directory.',
+        type: [FileResponseDto],
+    })
+    breadcrumb: FileResponseDto[]
 }

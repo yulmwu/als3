@@ -179,19 +179,19 @@ export class FilesController {
         return this.filesService.getDownloadUrl(file.id, req.user.userId)
     }
 
-    @Get('uuid/:uuid/breadcrumb')
-    @ApiOperation({ summary: 'Get breadcrumb trail for a directory' })
-    @ApiResponse({
-        status: 200,
-        description: 'Return breadcrumb trail from root to the specified directory.',
-        type: [FileResponseDto],
-    })
-    @ApiNotFoundResponse({ description: 'Directory not found.' })
-    @ApiForbiddenResponse({ description: 'You do not have permission to access this directory.' })
-    @ApiBadRequestResponse({ description: 'Breadcrumb is only available for directories.' })
-    getBreadcrumb(@Param() { uuid }: UuidDto, @Request() req: AuthenticatedRequest): Promise<FileResponseDto[]> {
-        return this.filesService.getBreadcrumb(uuid, req.user.userId)
-    }
+    // @Get('uuid/:uuid/breadcrumb')
+    // @ApiOperation({ summary: 'Get breadcrumb trail for a directory' })
+    // @ApiResponse({
+    //     status: 200,
+    //     description: 'Return breadcrumb trail from root to the specified directory.',
+    //     type: [FileResponseDto],
+    // })
+    // @ApiNotFoundResponse({ description: 'Directory not found.' })
+    // @ApiForbiddenResponse({ description: 'You do not have permission to access this directory.' })
+    // @ApiBadRequestResponse({ description: 'Breadcrumb is only available for directories.' })
+    // getBreadcrumb(@Param() { uuid }: UuidDto, @Request() req: AuthenticatedRequest): Promise<FileResponseDto[]> {
+    //     return this.filesService.getBreadcrumb(uuid, req.user.userId)
+    // }
 
     @Delete(':id')
     @ApiOperation({ summary: 'Delete a file or directory' })
