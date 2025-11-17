@@ -17,8 +17,8 @@ Provides lightweight cloud **STaaS(Storage as a Service)** storage services usin
     - _Move files and directories (not implemented yet)_
 - RESTful API
 - Web-based user interface
-- RBAC (not implemented yet)
-- Collaboration/Cooperation and Sharing (not implemented yet)
+- _RBAC (not implemented yet)_
+- _Collaboration/Cooperation and Sharing (not implemented yet)_
 
 # Installation and Build, Usages
 
