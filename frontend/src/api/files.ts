@@ -26,6 +26,7 @@ export interface ListFilesResponse {
     page: number
     limit: number
     totalPages: number
+    breadcrumb: FileItem[]
 }
 
 export interface CreateDirectoryRequest {
@@ -95,13 +96,6 @@ export const getDownloadUrl = async (id: number) => {
 export const getDownloadUrlByUuid = async (uuid: string) => {
     return withAuthRetry(async (header) => {
         const response = await client.get<FileWithDownloadUrl>(`/${FILES_API_PREFIX}/uuid/${uuid}/download`, header)
-        return response.data
-    })
-}
-
-export const getBreadcrumb = async (uuid: string) => {
-    return withAuthRetry(async (header) => {
-        const response = await client.get<FileItem[]>(`/${FILES_API_PREFIX}/uuid/${uuid}/breadcrumb`, header)
         return response.data
     })
 }

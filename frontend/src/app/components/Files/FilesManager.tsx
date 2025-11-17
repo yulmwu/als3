@@ -11,7 +11,6 @@ import {
     uploadFile,
     deleteFile,
     getDownloadUrlByUuid,
-    getBreadcrumb,
     FileItem,
 } from '@/api/files'
 import {
@@ -86,7 +85,13 @@ export const FilesManager = ({ currentUuid, onFileSelect, onDownload }: FilesMan
 
         const buildBreadcrumb = async (uuid: string) => {
             try {
-                const trail = await getBreadcrumb(uuid)
+                const trail = await queryClient.fetchQuery({
+                    queryKey: ['breadcrumb', uuid],
+                    queryFn: async () => {
+                        const response = await listFiles(uuid, 1, 1)
+                        return response.breadcrumb
+                    },
+                })
                 setBreadcrumb(trail)
             } catch (error) {
                 console.error('Failed to build breadcrumb:', error)
@@ -173,8 +178,6 @@ export const FilesManager = ({ currentUuid, onFileSelect, onDownload }: FilesMan
             e.currentTarget.value = ''
         }
     }
-
-    
 
     const handleDelete = (item: FileItem) => {
         setError(null)
