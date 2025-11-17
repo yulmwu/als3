@@ -217,6 +217,51 @@ export class FilesService {
         }
 
         await this.fileRepo.remove(file)
+
+        await this.redisService.delPattern(`breadcrumb:${userId}:*`)
+    }
+
+    async renameFile(fileId: number, newName: string, userId: number): Promise<FileResponseDto> {
+        const file = await this.fileRepo.findOne({
+            where: { id: fileId },
+        })
+
+        if (!file) {
+            throw new NotFoundException('File not found')
+        }
+
+        if (file.userId !== userId) {
+            throw new ForbiddenException('You do not have permission to rename this file')
+        }
+
+        if (file.name === newName) {
+            return file
+        }
+
+        if (file.type === FileType.DIRECTORY) {
+            this.validateDirectoryName(newName)
+        } else {
+            this.validateFileName(newName)
+        }
+
+        const existingItem = await this.fileRepo.findOne({
+            where: {
+                userId,
+                name: newName,
+                parentId: file.parentId ?? IsNull(),
+            },
+        })
+
+        if (existingItem && existingItem.id !== fileId) {
+            throw new BadRequestException('A file or directory with this name already exists in this location')
+        }
+
+        file.name = newName
+        const updated = await this.fileRepo.save(file)
+
+        await this.redisService.delPattern(`breadcrumb:${userId}:*`)
+
+        return updated
     }
 
     private validateDirectoryName(name: string): void {

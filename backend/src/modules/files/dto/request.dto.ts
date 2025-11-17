@@ -1,6 +1,17 @@
 import { ApiProperty, IntersectionType } from '@nestjs/swagger'
-import { IsOptional, IsUUID } from 'class-validator'
+import { IsOptional, IsUUID, IsString, IsNotEmpty, MaxLength } from 'class-validator'
 import { DirectoryNameDto, PaginationDto } from './base.dto'
+
+export class RenameFileRequestDto {
+    @ApiProperty({
+        description: 'The new name for the file or directory.',
+        example: 'new-name.txt',
+    })
+    @IsString()
+    @IsNotEmpty()
+    @MaxLength(255)
+    newName: string
+}
 
 export class CreateDirectoryRequestDto extends DirectoryNameDto {
     @ApiProperty({

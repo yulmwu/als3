@@ -7,6 +7,7 @@ import {
     CreateDateColumn,
     UpdateDateColumn,
     Generated,
+    Index,
 } from 'typeorm'
 import { User } from '../users/users.entity'
 
@@ -16,6 +17,7 @@ export enum FileType {
 }
 
 @Entity('files')
+@Index(['userId', 'parentId', 'name'], { unique: true })
 export class File {
     @PrimaryGeneratedColumn()
     id: number

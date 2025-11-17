@@ -3,6 +3,7 @@ import {
     Post,
     Get,
     Delete,
+    Patch,
     Query,
     Param,
     Body,
@@ -35,6 +36,7 @@ import {
     ListFilesResponseDto,
     CreateDirectoryRequestDto,
     ListFilesRequestDto,
+    RenameFileRequestDto,
 } from './dto'
 
 class UuidDto {
@@ -192,6 +194,20 @@ export class FilesController {
     // getBreadcrumb(@Param() { uuid }: UuidDto, @Request() req: AuthenticatedRequest): Promise<FileResponseDto[]> {
     //     return this.filesService.getBreadcrumb(uuid, req.user.userId)
     // }
+
+    @Patch(':id/rename')
+    @ApiOperation({ summary: 'Rename a file or directory' })
+    @ApiResponse({ status: 200, description: 'File or directory renamed successfully.', type: FileResponseDto })
+    @ApiNotFoundResponse({ description: 'File not found.' })
+    @ApiForbiddenResponse({ description: 'You do not have permission to rename this file.' })
+    @ApiBadRequestResponse({ description: 'Invalid name or a file with this name already exists.' })
+    async renameFile(
+        @Param() { id }: IdDto,
+        @Body() dto: RenameFileRequestDto,
+        @Request() req: AuthenticatedRequest,
+    ): Promise<FileResponseDto> {
+        return this.filesService.renameFile(id, dto.newName, req.user.userId)
+    }
 
     @Delete(':id')
     @ApiOperation({ summary: 'Delete a file or directory' })
