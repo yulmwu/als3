@@ -11,6 +11,7 @@ import {
     uploadFile,
     deleteFile,
     renameFile,
+    moveFile,
     getDownloadUrlByUuid,
     FileItem,
 } from '@/api/files'
@@ -57,6 +58,8 @@ export const FilesManager = ({ currentUuid, onFileSelect, onDownload }: FilesMan
     const [showInlineCreate, setShowInlineCreate] = useState(false)
     const [renamingUuid, setRenamingUuid] = useState<string | null>(null)
     const [renameValue, setRenameValue] = useState('')
+    const [draggedItem, setDraggedItem] = useState<FileItem | null>(null)
+    const [dragOverUuid, setDragOverUuid] = useState<string | null>(null)
     const fileInputRef = useRef<HTMLInputElement | null>(null)
 
     const queryClient = useQueryClient()
@@ -196,6 +199,18 @@ export const FilesManager = ({ currentUuid, onFileSelect, onDownload }: FilesMan
         },
     })
 
+    const moveMutation = useMutation({
+        mutationFn: ({ id, targetParentUuid }: { id: number; targetParentUuid?: string }) =>
+            moveFile(id, targetParentUuid),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['files'] })
+            setError(null)
+        },
+        onError: (error: any) => {
+            setError(error.response?.data?.message || '이동에 실패했습니다.')
+        },
+    })
+
     const handleCreateFolder = () => {
         if (newFolderName.trim()) {
             setError(null)
@@ -241,6 +256,76 @@ export const FilesManager = ({ currentUuid, onFileSelect, onDownload }: FilesMan
     const handleCancelRename = () => {
         setRenamingUuid(null)
         setRenameValue('')
+    }
+
+    const handleDragStart = (e: React.DragEvent, item: FileItem) => {
+        setDraggedItem(item)
+        e.dataTransfer.effectAllowed = 'move'
+    }
+
+    const handleDragOver = (e: React.DragEvent, targetItem?: FileItem | 'parent') => {
+        e.preventDefault()
+        e.dataTransfer.dropEffect = 'move'
+
+        if (targetItem === 'parent') {
+            setDragOverUuid('__parent__')
+        } else if (targetItem && targetItem.type === 'directory') {
+            setDragOverUuid(targetItem.uuid)
+        }
+    }
+
+    const handleDragLeave = () => {
+        setDragOverUuid(null)
+    }
+
+    const handleDrop = (e: React.DragEvent, targetItem?: FileItem | 'parent') => {
+        e.preventDefault()
+        setDragOverUuid(null)
+
+        if (!draggedItem) return
+
+        let targetParentUuid: string | undefined
+
+        if (targetItem === 'parent') {
+            const parentDir = breadcrumb.length >= 2 ? breadcrumb[breadcrumb.length - 2] : undefined
+            targetParentUuid = parentDir?.uuid
+        } else if (targetItem && targetItem.type === 'directory') {
+            if (draggedItem.uuid === targetItem.uuid) {
+                setError('폴더를 자기 자신으로 이동할 수 없습니다.')
+                setDraggedItem(null)
+                return
+            }
+            targetParentUuid = targetItem.uuid
+        } else {
+            setDraggedItem(null)
+            return
+        }
+
+        moveMutation.mutate(
+            { id: draggedItem.id, targetParentUuid },
+            {
+                onSuccess: () => {
+                    setDraggedItem(null)
+                },
+                onError: () => {
+                    setDraggedItem(null)
+                },
+            },
+        )
+    }
+
+    const handleDragEnd = () => {
+        setDraggedItem(null)
+        setDragOverUuid(null)
+    }
+
+    const navigateToParent = () => {
+        if (breadcrumb.length >= 2) {
+            const parent = breadcrumb[breadcrumb.length - 2]
+            router.push(`/files/${parent.uuid}`)
+        } else if (breadcrumb.length === 1) {
+            router.push('/files')
+        }
     }
 
     const handleDownload = async (item: FileItem) => {
@@ -366,7 +451,7 @@ export const FilesManager = ({ currentUuid, onFileSelect, onDownload }: FilesMan
                         <div className='text-center py-12'>
                             <div className='text-gray-500'>로딩 중...</div>
                         </div>
-                    ) : !filesData || filesData.items.length === 0 ? (
+                    ) : !filesData || (filesData.items.length === 0 && !currentUuid) ? (
                         <div className='text-center py-12'>
                             <Folder className='w-16 h-16 mx-auto text-gray-300 mb-4' />
                             <div className='text-gray-500'>비어있는 디렉토리입니다.</div>
@@ -391,11 +476,46 @@ export const FilesManager = ({ currentUuid, onFileSelect, onDownload }: FilesMan
                                     </tr>
                                 </thead>
                                 <tbody className='bg-white divide-y divide-gray-200'>
+                                    {currentUuid && (
+                                        <tr
+                                            className={`hover:bg-gray-50 transition-colors cursor-pointer ${
+                                                dragOverUuid === '__parent__' ? 'bg-blue-100' : ''
+                                            }`}
+                                            onClick={navigateToParent}
+                                            onDragOver={(e) => handleDragOver(e, 'parent')}
+                                            onDragLeave={handleDragLeave}
+                                            onDrop={(e) => handleDrop(e, 'parent')}
+                                        >
+                                            <td className='px-3 sm:px-4 py-3 sm:py-4'>
+                                                <div className='flex items-center gap-2 sm:gap-3'>
+                                                    <Folder className='w-4 h-4 sm:w-5 sm:h-5 text-gray-400 flex-shrink-0' />
+                                                    <span className='text-xs sm:text-sm font-medium text-gray-900'>
+                                                        ..
+                                                    </span>
+                                                </div>
+                                            </td>
+                                            <td className='hidden md:table-cell px-3 sm:px-4 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-500'>
+                                                -
+                                            </td>
+                                            <td className='hidden lg:table-cell px-3 sm:px-4 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-500'>
+                                                -
+                                            </td>
+                                            <td className='px-3 sm:px-4 py-3 sm:py-4'></td>
+                                        </tr>
+                                    )}
                                     {filesData.items.map((item) => (
                                         <tr
                                             key={item.uuid}
+                                            draggable={renamingUuid !== item.uuid}
+                                            onDragStart={(e) => handleDragStart(e, item)}
+                                            onDragEnd={handleDragEnd}
+                                            onDragOver={(e) => item.type === 'directory' && handleDragOver(e, item)}
+                                            onDragLeave={handleDragLeave}
+                                            onDrop={(e) => item.type === 'directory' && handleDrop(e, item)}
                                             className={`hover:bg-gray-50 transition-colors ${
                                                 selectedFileForDetail?.uuid === item.uuid ? 'bg-blue-50' : ''
+                                            } ${dragOverUuid === item.uuid ? 'bg-blue-100' : ''} ${
+                                                draggedItem?.uuid === item.uuid ? 'opacity-50' : ''
                                             }`}
                                         >
                                             <td
