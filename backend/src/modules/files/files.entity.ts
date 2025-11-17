@@ -45,7 +45,7 @@ export class File {
     path: string
 
     @Column({ type: 'int', nullable: true })
-    parentId?: number
+    parentId?: number | null
 
     @ManyToOne(() => File, { onDelete: 'CASCADE', nullable: true })
     @JoinColumn({ name: 'parentId' })

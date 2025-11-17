@@ -35,16 +35,23 @@ export class StorageService {
         const fileName = fileExtension ? `${uuidv4()}.${fileExtension}` : uuidv4()
         const s3Key = `users/${userId}/${path}${fileName}`.replace(/\/+/g, '/')
 
+        await this.putObject(s3Key, file)
+        return s3Key
+    }
+
+    async uploadFileWithKey(file: Express.Multer.File, s3Key: string): Promise<string> {
+        await this.putObject(s3Key, file)
+        return s3Key
+    }
+
+    private async putObject(s3Key: string, file: Express.Multer.File): Promise<void> {
         const command = new PutObjectCommand({
             Bucket: this.bucketName,
             Key: s3Key,
             Body: file.buffer,
             ContentType: file.mimetype,
         })
-
         await this.s3Client.send(command)
-
-        return s3Key
     }
 
     async deleteFile(s3Key: string): Promise<void> {
@@ -72,10 +79,17 @@ export class StorageService {
         }
     }
 
-    async getPresignedUrl(s3Key: string, expiresIn: number = 3600): Promise<string> {
+    async getPresignedUrl(
+        s3Key: string,
+        expiresIn: number = 3600,
+        filename?: string,
+        contentType?: string,
+    ): Promise<string> {
         const command = new GetObjectCommand({
             Bucket: this.bucketName,
             Key: s3Key,
+            ...(filename ? { ResponseContentDisposition: `attachment; filename="${filename}"` } : {}),
+            ...(contentType ? { ResponseContentType: contentType } : {}),
         })
 
         const presignedUrl = await getSignedUrl(this.s3Client, command, { expiresIn })

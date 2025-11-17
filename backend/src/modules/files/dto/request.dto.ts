@@ -13,6 +13,17 @@ export class RenameFileRequestDto {
     newName: string
 }
 
+export class MoveFileRequestDto {
+    @ApiProperty({
+        description: 'The UUID of the target parent directory (null for root).',
+        example: '550e8400-e29b-41d4-a716-446655440000',
+        required: false,
+    })
+    @IsOptional()
+    @IsUUID()
+    targetParentUuid?: string
+}
+
 export class CreateDirectoryRequestDto extends DirectoryNameDto {
     @ApiProperty({
         description: 'The UUID of the parent directory (null for root).',

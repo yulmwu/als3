@@ -42,7 +42,7 @@ export class FileBaseResponseDto extends IntersectionType(IdDto, FileNameDto, Fi
         example: 1,
         nullable: true,
     })
-    parentId?: number
+    parentId?: number | null
 
     @ApiProperty({
         description: 'The last update timestamp.',

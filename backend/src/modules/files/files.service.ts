@@ -21,10 +21,7 @@ export class FilesService {
     ) {}
 
     async uploadFile(file: Express.Multer.File, userId: number, parentUuid?: string): Promise<FileResponseDto> {
-        if (!file) {
-            throw new BadRequestException('No file provided')
-        }
-
+        if (!file) throw new BadRequestException('No file provided')
         if (!file.originalname || file.originalname.trim() === '') {
             throw new BadRequestException('Invalid file name')
         }
@@ -33,36 +30,26 @@ export class FilesService {
 
         let parentId: number | undefined = undefined
         let parentPath = '/'
-
         if (parentUuid) {
             const parent = await this.fileRepo.findOne({
                 where: { uuid: parentUuid, userId, type: FileType.DIRECTORY },
             })
-            if (!parent) {
-                throw new NotFoundException('Parent directory not found')
-            }
+            if (!parent) throw new NotFoundException('Parent directory not found')
             parentId = parent.id
             parentPath = `${parent.path}${parent.name}/`.replace(/\/+/g, '/')
         }
 
         const existingItem = await this.fileRepo.findOne({
-            where: {
-                userId,
-                name: file.originalname,
-                parentId: parentId ?? IsNull(),
-            },
+            where: { userId, name: file.originalname, parentId: parentId ?? IsNull() },
         })
 
         if (existingItem) {
             throw new BadRequestException('A file with this name already exists in this location')
         }
 
-        const s3Key = await this.storageService.uploadFile(file, userId, parentPath)
-
-        const fileEntity = this.fileRepo.create({
+        const initialEntity = this.fileRepo.create({
             name: file.originalname,
             type: FileType.FILE,
-            s3Key,
             mimeType: file.mimetype,
             size: file.size,
             path: parentPath,
@@ -70,9 +57,20 @@ export class FilesService {
             userId,
         })
 
-        const savedFile = await this.fileRepo.save(fileEntity)
+        const saved = await this.fileRepo.save(initialEntity)
+        const s3Key = `users/${userId}/f/${saved.uuid}`
+
+        try {
+            await this.storageService.uploadFileWithKey(file, s3Key)
+        } catch (err) {
+            await this.fileRepo.delete({ id: saved.id })
+            throw new BadRequestException('Failed to upload file to storage')
+        }
+
+        saved.s3Key = s3Key
+        const updated = await this.fileRepo.save(saved)
         await this.redisService.delPattern(`list:${userId}:*`)
-        return savedFile
+        return updated
     }
 
     async createDirectory(dto: CreateDirectoryRequestDto, userId: number): Promise<FileResponseDto> {
@@ -189,7 +187,12 @@ export class FilesService {
             throw new BadRequestException('File has no S3 key')
         }
 
-        const downloadUrl = await this.storageService.getPresignedUrl(file.s3Key)
+        const downloadUrl = await this.storageService.getPresignedUrl(
+            file.s3Key,
+            3600,
+            file.name,
+            file.mimeType || 'application/octet-stream',
+        )
 
         return {
             ...file,
@@ -424,4 +427,92 @@ export class FilesService {
 
         return breadcrumb
     }
+
+    async moveFile(fileId: number, userId: number, targetParentUuid?: string): Promise<FileResponseDto> {
+        const file = await this.fileRepo.findOne({
+            where: { id: fileId },
+        })
+
+        if (!file) {
+            throw new NotFoundException('File not found')
+        }
+
+        if (file.userId !== userId) {
+            throw new ForbiddenException('You do not have permission to move this file')
+        }
+
+        let targetParentId: number | null = null
+        let targetParentPath = '/'
+
+        if (targetParentUuid) {
+            const targetParent = await this.fileRepo.findOne({
+                where: { uuid: targetParentUuid, userId, type: FileType.DIRECTORY },
+            })
+
+            if (!targetParent) {
+                throw new NotFoundException('Target parent directory not found')
+            }
+
+            if (file.type === FileType.DIRECTORY) {
+                const isDescendant = await this.isDescendant(file.id, targetParent.id, userId)
+                if (isDescendant || file.id === targetParent.id) {
+                    throw new BadRequestException('Cannot move a directory into itself or its descendant')
+                }
+            }
+
+            targetParentId = targetParent.id
+            targetParentPath = `${targetParent.path}${targetParent.name}/`.replace(/\/+/g, '/')
+        }
+
+        const currentParentId = file.parentId ?? null
+        if (currentParentId === targetParentId) {
+            throw new BadRequestException('File is already in the target location')
+        }
+
+        const existingItem = await this.fileRepo.findOne({
+            where: {
+                userId,
+                name: file.name,
+                parentId: targetParentId === null ? IsNull() : targetParentId,
+            },
+        })
+
+        if (existingItem && existingItem.id !== file.id) {
+            throw new BadRequestException('A file with this name already exists in the target location')
+        }
+
+        file.parentId = targetParentId
+        file.path = targetParentPath
+
+        const updatedFile = await this.fileRepo.save(file)
+
+        await this.redisService.delPattern(`list:${userId}:*`)
+        await this.redisService.delPattern(`breadcrumb:${userId}:*`)
+
+        return updatedFile
+    }
+
+    private async isDescendant(ancestorId: number, descendantId: number, userId: number): Promise<boolean> {
+        const result: { exists: boolean }[] = await this.fileRepo.query(
+            `
+            WITH RECURSIVE descendants AS (
+                SELECT id, "parentId"
+                FROM files
+                WHERE id = $1 AND "userId" = $3
+
+                UNION ALL
+
+                SELECT f.id, f."parentId"
+                FROM files f
+                INNER JOIN descendants d ON f."parentId" = d.id
+                WHERE f."userId" = $3
+            )
+            SELECT EXISTS(SELECT 1 FROM descendants WHERE id = $2) as exists
+            `,
+            [ancestorId, descendantId, userId],
+        )
+
+        return result[0]?.exists || false
+    }
 }
+

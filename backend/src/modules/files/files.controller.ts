@@ -37,6 +37,7 @@ import {
     CreateDirectoryRequestDto,
     ListFilesRequestDto,
     RenameFileRequestDto,
+    MoveFileRequestDto,
 } from './dto'
 
 class UuidDto {
@@ -207,6 +208,23 @@ export class FilesController {
         @Request() req: AuthenticatedRequest,
     ): Promise<FileResponseDto> {
         return this.filesService.renameFile(id, dto.newName, req.user.userId)
+    }
+
+    @Patch(':id/move')
+    @ApiOperation({ summary: 'Move a file or directory to a different parent directory' })
+    @ApiResponse({ status: 200, description: 'File or directory moved successfully.', type: FileResponseDto })
+    @ApiNotFoundResponse({ description: 'File or target parent directory not found.' })
+    @ApiForbiddenResponse({ description: 'You do not have permission to move this file.' })
+    @ApiBadRequestResponse({
+        description:
+            'File is already in the target location, a file with this name exists in target, or cannot move directory into itself/descendant.',
+    })
+    async moveFile(
+        @Param() { id }: IdDto,
+        @Body() dto: MoveFileRequestDto,
+        @Request() req: AuthenticatedRequest,
+    ): Promise<FileResponseDto> {
+        return this.filesService.moveFile(id, req.user.userId, dto.targetParentUuid)
     }
 
     @Delete(':id')
