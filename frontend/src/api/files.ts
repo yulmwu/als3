@@ -100,6 +100,13 @@ export const getDownloadUrlByUuid = async (uuid: string) => {
     })
 }
 
+export const renameFile = async (id: number, newName: string) => {
+    return withAuthRetry(async (header) => {
+        const response = await client.patch<FileItem>(`/${FILES_API_PREFIX}/${id}/rename`, { newName }, header)
+        return response.data
+    })
+}
+
 export const deleteFile = async (id: number) => {
     return withAuthRetry(async (header) => {
         const response = await client.delete<{ message: string }>(`/${FILES_API_PREFIX}/${id}`, header)

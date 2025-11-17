@@ -10,6 +10,7 @@ import {
     createDirectory,
     uploadFile,
     deleteFile,
+    renameFile,
     getDownloadUrlByUuid,
     FileItem,
 } from '@/api/files'
@@ -28,6 +29,7 @@ import {
     X as XIcon,
     AlertTriangle,
     Plus,
+    Edit,
 } from 'lucide-react'
 import { useAuth } from '@/app/context/AuthContext'
 
@@ -52,6 +54,8 @@ export const FilesManager = ({ currentUuid, onFileSelect, onDownload }: FilesMan
     const [openCreateMenu, setOpenCreateMenu] = useState(false)
     const [createMenuPos, setCreateMenuPos] = useState<{ left: number; top: number }>({ left: 0, top: 0 })
     const [showInlineCreate, setShowInlineCreate] = useState(false)
+    const [renamingUuid, setRenamingUuid] = useState<string | null>(null)
+    const [renameValue, setRenameValue] = useState('')
     const fileInputRef = useRef<HTMLInputElement | null>(null)
 
     const queryClient = useQueryClient()
@@ -76,6 +80,21 @@ export const FilesManager = ({ currentUuid, onFileSelect, onDownload }: FilesMan
         document.addEventListener('click', handleDocClick)
         return () => document.removeEventListener('click', handleDocClick)
     }, [openMenuUuid])
+
+    useEffect(() => {
+        if (!renamingUuid) return
+        
+        const handleClickOutside = (e: MouseEvent) => {
+            const target = e.target as HTMLElement
+            const renameInput = document.querySelector(`[data-rename-input="${renamingUuid}"]`)
+            if (renameInput && !renameInput.contains(target)) {
+                handleCancelRename()
+            }
+        }
+        
+        document.addEventListener('mousedown', handleClickOutside)
+        return () => document.removeEventListener('mousedown', handleClickOutside)
+    }, [renamingUuid])
 
     useEffect(() => {
         if (!currentUuid) {
@@ -159,6 +178,20 @@ export const FilesManager = ({ currentUuid, onFileSelect, onDownload }: FilesMan
         },
     })
 
+    const renameMutation = useMutation({
+        mutationFn: ({ id, newName }: { id: number; newName: string }) => renameFile(id, newName),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['files', currentUuid] })
+            setRenamingUuid(null)
+            setRenameValue('')
+            setOpenMenuUuid(null)
+            setError(null)
+        },
+        onError: (error: any) => {
+            setError(error.response?.data?.message || '이름 변경에 실패했습니다.')
+        },
+    })
+
     const handleCreateFolder = () => {
         if (newFolderName.trim()) {
             setError(null)
@@ -183,6 +216,27 @@ export const FilesManager = ({ currentUuid, onFileSelect, onDownload }: FilesMan
         setError(null)
         setOpenMenuUuid(null)
         deleteMutation.mutate(item.id)
+    }
+
+    const handleStartRename = (item: FileItem) => {
+        setRenamingUuid(item.uuid)
+        setRenameValue(item.name)
+        setOpenMenuUuid(null)
+    }
+
+    const handleRename = (item: FileItem) => {
+        if (renameValue.trim() && renameValue.trim() !== item.name) {
+            setError(null)
+            renameMutation.mutate({ id: item.id, newName: renameValue.trim() })
+        } else {
+            setRenamingUuid(null)
+            setRenameValue('')
+        }
+    }
+
+    const handleCancelRename = () => {
+        setRenamingUuid(null)
+        setRenameValue('')
     }
 
     const handleDownload = async (item: FileItem) => {
@@ -341,8 +395,8 @@ export const FilesManager = ({ currentUuid, onFileSelect, onDownload }: FilesMan
                                             }`}
                                         >
                                             <td
-                                                className='px-3 sm:px-4 py-3 sm:py-4 cursor-pointer'
-                                                onClick={() => handleItemClick(item)}
+                                                className='px-3 sm:px-4 py-3 sm:py-4'
+                                                onClick={() => renamingUuid !== item.uuid && handleItemClick(item)}
                                             >
                                                 <div className='flex items-center gap-2 sm:gap-3 min-w-0'>
                                                     {item.type === 'directory' ? (
@@ -350,15 +404,40 @@ export const FilesManager = ({ currentUuid, onFileSelect, onDownload }: FilesMan
                                                     ) : (
                                                         <File className='w-4 h-4 sm:w-5 sm:h-5 text-gray-400 flex-shrink-0' />
                                                     )}
-                                                    <span
-                                                        className={`text-xs sm:text-sm font-medium truncate ${
-                                                            selectedFileForDetail?.uuid === item.uuid
-                                                                ? 'text-blue-600'
-                                                                : 'text-gray-900'
-                                                        }`}
-                                                    >
-                                                        {item.name}
-                                                    </span>
+                                                    {renamingUuid === item.uuid ? (
+                                                        <div className='flex-1 flex items-center gap-2' onClick={(e) => e.stopPropagation()}>
+                                                            <input
+                                                                type='text'
+                                                                value={renameValue}
+                                                                onChange={(e) => setRenameValue(e.target.value)}
+                                                                className='flex-1 px-2 py-1 text-xs sm:text-sm border border-blue-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-200'
+                                                                data-rename-input={item.uuid}
+                                                                onKeyDown={(e) => {
+                                                                    if (e.key === 'Enter' && !renameMutation.isPending) {
+                                                                        handleRename(item)
+                                                                    } else if (e.key === 'Escape') {
+                                                                        handleCancelRename()
+                                                                    }
+                                                                }}
+                                                                onBlur={() => !renameMutation.isPending && handleRename(item)}
+                                                                disabled={renameMutation.isPending}
+                                                                autoFocus
+                                                            />
+                                                            {renameMutation.isPending && (
+                                                                <Loader2 className='w-4 h-4 text-blue-600 animate-spin flex-shrink-0' />
+                                                            )}
+                                                        </div>
+                                                    ) : (
+                                                        <span
+                                                            className={`text-xs sm:text-sm font-medium truncate cursor-pointer ${
+                                                                selectedFileForDetail?.uuid === item.uuid
+                                                                    ? 'text-blue-600'
+                                                                    : 'text-gray-900'
+                                                            }`}
+                                                        >
+                                                            {item.name}
+                                                        </span>
+                                                    )}
                                                 </div>
                                             </td>
                                             <td className='hidden md:table-cell px-3 sm:px-4 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-500'>
@@ -424,10 +503,17 @@ export const FilesManager = ({ currentUuid, onFileSelect, onDownload }: FilesMan
                                                                             다운로드
                                                                         </button>
                                                                     )}
-                                                                {confirmDeleteUuid !== item.uuid &&
-                                                                    item.type === 'file' && (
-                                                                        <div className='my-1 h-px bg-gray-100' />
-                                                                    )}
+                                                                {confirmDeleteUuid !== item.uuid && (
+                                                                    <button
+                                                                        className='w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2'
+                                                                        onClick={() => handleStartRename(item)}
+                                                                    >
+                                                                        <Edit className='w-4 h-4 text-gray-600' /> 이름 변경
+                                                                    </button>
+                                                                )}
+                                                                {confirmDeleteUuid !== item.uuid && (
+                                                                    <div className='my-1 h-px bg-gray-100' />
+                                                                )}
                                                                 {confirmDeleteUuid === item.uuid ? (
                                                                     <div className='px-3 py-2'>
                                                                         <div className='flex items-start gap-2 p-2 rounded-md bg-red-50 border border-red-100'>
