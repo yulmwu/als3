@@ -70,7 +70,9 @@ export class FilesService {
             userId,
         })
 
-        return await this.fileRepo.save(fileEntity)
+        const savedFile = await this.fileRepo.save(fileEntity)
+        await this.redisService.delPattern(`list:${userId}:*`)
+        return savedFile
     }
 
     async createDirectory(dto: CreateDirectoryRequestDto, userId: number): Promise<FileResponseDto> {
@@ -110,7 +112,9 @@ export class FilesService {
             userId,
         })
 
-        return await this.fileRepo.save(directory)
+        const savedDir = await this.fileRepo.save(directory)
+        await this.redisService.delPattern(`list:${userId}:*`)
+        return savedDir
     }
 
     async listFiles(dto: ListFilesRequestDto, userId: number): Promise<ListFilesResponseDto> {
@@ -130,6 +134,13 @@ export class FilesService {
             parentId = parent.id
         }
 
+        const parentKey = dto.parentUuid || 'root'
+        const cacheKey = `list:${userId}:${parentKey}:${page}:${limit}`
+        const cached = await this.redisService.get(cacheKey)
+        if (cached) {
+            return JSON.parse(cached)
+        }
+
         const [items, total] = await this.fileRepo.findAndCount({
             where: {
                 userId,
@@ -143,7 +154,7 @@ export class FilesService {
             take: limit,
         })
 
-        return {
+        const response = {
             items,
             total,
             page,
@@ -151,6 +162,10 @@ export class FilesService {
             totalPages: Math.ceil(total / limit),
             breadcrumb: await this.getBreadcrumb(userId, dto.parentUuid),
         }
+
+        await this.redisService.set(cacheKey, JSON.stringify(response), 30)
+
+        return response
     }
 
     async getDownloadUrl(fileId: number, userId: number): Promise<FileWithDownloadUrlResponseDto> {
@@ -237,6 +252,7 @@ export class FilesService {
         }
 
         await this.redisService.delPattern(`breadcrumb:${userId}:*`)
+        await this.redisService.delPattern(`list:${userId}:*`)
     }
 
     async renameFile(fileId: number, newName: string, userId: number): Promise<FileResponseDto> {
@@ -278,6 +294,7 @@ export class FilesService {
         const updated = await this.fileRepo.save(file)
 
         await this.redisService.delPattern(`breadcrumb:${userId}:*`)
+        await this.redisService.delPattern(`list:${userId}:*`)
 
         return updated
     }
