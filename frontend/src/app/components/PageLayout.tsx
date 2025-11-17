@@ -14,9 +14,9 @@ interface PageLayoutProps {
 
 export const PageLayout = (props: PageLayoutProps) => {
     const [isMobile, setIsMobile] = useState(false)
-    const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+    const [isMobileOverlayOpen, setIsMobileOverlayOpen] = useState(false)
 
-    const { isCollapsed, toggleCollapse, setCollapse } = useSidebar()
+    const { isCollapsed, toggleCollapse } = useSidebar()
 
     useEffect(() => {
         const handleResize = () => {
@@ -24,7 +24,7 @@ export const PageLayout = (props: PageLayoutProps) => {
             setIsMobile(isNowMobile)
 
             if (isNowMobile) {
-                setIsSidebarOpen(false)
+                setIsMobileOverlayOpen(false)
             }
         }
 
@@ -33,25 +33,27 @@ export const PageLayout = (props: PageLayoutProps) => {
         return () => window.removeEventListener('resize', handleResize)
     }, [])
 
+    const handleToggle = () => {
+        if (isMobile) {
+            setIsMobileOverlayOpen((prev) => !prev)
+        } else {
+            toggleCollapse()
+        }
+    }
+
     return (
         <div className='min-h-screen'>
-            <Header onMenuClick={() => setIsSidebarOpen((prev) => !prev)} searchQuery={props.searchQuery} />
+            <Header onMenuClick={handleToggle} searchQuery={props.searchQuery} />
             <div className='flex'>
-                {isMobile && isSidebarOpen && (
-                    <div className='fixed inset-0 z-40 bg-black/40' onClick={() => setIsSidebarOpen(false)} />
+                {isMobile && isMobileOverlayOpen && (
+                    <div className='fixed inset-0 z-40 bg-black/40' onClick={() => setIsMobileOverlayOpen(false)} />
                 )}
                 <LeftSidebar
-                    isCollapsed={isMobile ? !isSidebarOpen : isCollapsed}
-                    onToggle={() => {
-                        if (isMobile) {
-                            setIsSidebarOpen((prev) => !prev)
-                        } else {
-                            toggleCollapse()
-                        }
-                    }}
+                    isCollapsed={isMobile ? !isMobileOverlayOpen : isCollapsed}
+                    onToggle={handleToggle}
                     isMobile={isMobile}
-                    isSidebarOpen={isSidebarOpen}
-                    closeSidebar={() => setIsSidebarOpen(false)}
+                    isSidebarOpen={isMobileOverlayOpen}
+                    closeSidebar={() => setIsMobileOverlayOpen(false)}
                     currentItem={props.currentItem}
                 />
                 <main className='flex-1 min-h-[calc(100vh-4rem)] overflow-y-auto'>{props.children}</main>

@@ -4,8 +4,7 @@ import { Suspense, useState, useEffect } from 'react'
 import { useParams, useSearchParams, useRouter } from 'next/navigation'
 import { FilesManager } from '../../components/Files/FilesManager'
 import { FileDetailSidebar } from '../../components/Files/FileDetailSidebar'
-import { Header } from '../../components/Header'
-import { LeftSidebar } from '../../components/LeftSidebar'
+import { PageLayout } from '../../components/PageLayout'
 import { FileItem, getDownloadUrlByUuid, getFileByUuid } from '@/api/files'
 
 const FilesPage = () => {
@@ -13,7 +12,6 @@ const FilesPage = () => {
     const searchParams = useSearchParams()
     const router = useRouter()
     const [selectedFile, setSelectedFile] = useState<FileItem | null>(null)
-    const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
 
     const currentUuid = params.uuid as string | undefined
     const selectedFileUuid = searchParams.get('f')
@@ -55,14 +53,8 @@ const FilesPage = () => {
     }
 
     return (
-        <>
-            <Header />
-            <div className='flex min-h-screen bg-white'>
-                <LeftSidebar
-                    currentItem='files'
-                    isCollapsed={isSidebarCollapsed}
-                    onToggle={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-                />
+        <PageLayout currentItem='files'>
+            <div className='flex'>
                 <main className='flex-1'>
                     <Suspense fallback={<div className='p-6 text-center'>로딩 중...</div>}>
                         <FilesManager
@@ -78,7 +70,7 @@ const FilesPage = () => {
                     onDownload={handleDownload}
                 />
             </div>
-        </>
+        </PageLayout>
     )
 }
 

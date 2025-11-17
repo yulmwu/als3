@@ -87,7 +87,7 @@ export const FilesManager = ({ currentUuid, onFileSelect, onDownload }: FilesMan
 
     useEffect(() => {
         if (!renamingUuid) return
-        
+
         const handleClickOutside = (e: MouseEvent) => {
             const target = e.target as HTMLElement
             const renameInput = document.querySelector(`[data-rename-input="${renamingUuid}"]`)
@@ -95,7 +95,7 @@ export const FilesManager = ({ currentUuid, onFileSelect, onDownload }: FilesMan
                 handleCancelRename()
             }
         }
-        
+
         document.addEventListener('mousedown', handleClickOutside)
         return () => document.removeEventListener('mousedown', handleClickOutside)
     }, [renamingUuid])
@@ -409,7 +409,10 @@ export const FilesManager = ({ currentUuid, onFileSelect, onDownload }: FilesMan
                                                         <File className='w-4 h-4 sm:w-5 sm:h-5 text-gray-400 flex-shrink-0' />
                                                     )}
                                                     {renamingUuid === item.uuid ? (
-                                                        <div className='flex-1 flex items-center gap-2' onClick={(e) => e.stopPropagation()}>
+                                                        <div
+                                                            className='flex-1 flex items-center gap-2'
+                                                            onClick={(e) => e.stopPropagation()}
+                                                        >
                                                             <input
                                                                 type='text'
                                                                 value={renameValue}
@@ -417,13 +420,18 @@ export const FilesManager = ({ currentUuid, onFileSelect, onDownload }: FilesMan
                                                                 className='flex-1 px-2 py-1 text-xs sm:text-sm border border-blue-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-200'
                                                                 data-rename-input={item.uuid}
                                                                 onKeyDown={(e) => {
-                                                                    if (e.key === 'Enter' && !renameMutation.isPending) {
+                                                                    if (
+                                                                        e.key === 'Enter' &&
+                                                                        !renameMutation.isPending
+                                                                    ) {
                                                                         handleRename(item)
                                                                     } else if (e.key === 'Escape') {
                                                                         handleCancelRename()
                                                                     }
                                                                 }}
-                                                                onBlur={() => !renameMutation.isPending && handleRename(item)}
+                                                                onBlur={() =>
+                                                                    !renameMutation.isPending && handleRename(item)
+                                                                }
                                                                 disabled={renameMutation.isPending}
                                                                 autoFocus
                                                             />
@@ -512,7 +520,8 @@ export const FilesManager = ({ currentUuid, onFileSelect, onDownload }: FilesMan
                                                                         className='w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2'
                                                                         onClick={() => handleStartRename(item)}
                                                                     >
-                                                                        <Edit className='w-4 h-4 text-gray-600' /> 이름 변경
+                                                                        <Edit className='w-4 h-4 text-gray-600' /> 이름
+                                                                        변경
                                                                     </button>
                                                                 )}
                                                                 {confirmDeleteUuid !== item.uuid && (
@@ -616,7 +625,7 @@ export const FilesManager = ({ currentUuid, onFileSelect, onDownload }: FilesMan
                             >
                                 <Upload className='w-4 h-4 text-blue-600' /> 파일 업로드
                             </button>
-                            {(uploadFileMutation.isPending) && (
+                            {uploadFileMutation.isPending && (
                                 <div className='px-3 pt-1 pb-2'>
                                     <div className='flex items-center gap-2 text-xs text-gray-600'>
                                         <Loader2 className='w-4 h-4 animate-spin text-blue-600' />
