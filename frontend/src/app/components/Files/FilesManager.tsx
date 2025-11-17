@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { usePathname, useSearchParams } from 'next/navigation'
 import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
@@ -42,7 +42,8 @@ interface FilesManagerProps {
 export const FilesManager = ({ currentUuid, onFileSelect, onDownload }: FilesManagerProps = {}) => {
     const router = useRouter()
     const searchParams = useSearchParams()
-    const { user, loading: authLoading } = useAuth()
+    const pathname = usePathname()
+    const { user, initializing } = useAuth()
     const [page, setPage] = useState(1)
     const [openMenuUuid, setOpenMenuUuid] = useState<string | null>(null)
     const [menuPosition, setMenuPosition] = useState<{ left: number; top: number }>({ left: 0, top: 0 })
@@ -61,10 +62,13 @@ export const FilesManager = ({ currentUuid, onFileSelect, onDownload }: FilesMan
     const queryClient = useQueryClient()
 
     useEffect(() => {
-        if (!authLoading && !user) {
-            router.push('/login?redirect=/files')
+        if (initializing) return
+        if (!user) {
+            const qs = searchParams.toString()
+            const current = qs ? `${pathname}?${qs}` : pathname
+            router.push(`/login?redirect=${encodeURIComponent(current)}`)
         }
-    }, [user, authLoading, router])
+    }, [user, initializing, pathname, searchParams, router])
 
     useEffect(() => {
         const handleDocClick = (e: MouseEvent) => {
@@ -292,7 +296,7 @@ export const FilesManager = ({ currentUuid, onFileSelect, onDownload }: FilesMan
         })
     }
 
-    if (authLoading) {
+    if (initializing) {
         return (
             <div className='max-w-7xl mx-auto p-6'>
                 <div className='bg-white rounded-lg shadow p-12 text-center'>
