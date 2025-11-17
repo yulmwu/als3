@@ -13,8 +13,8 @@ Provides lightweight cloud **STaaS(Storage as a Service)** storage services usin
     - File and directory renaming
     - File and directory deletion
     - File listing with pagination
+    - Move files and directories
     - Breadcrumb navigation
-    - _Move files and directories (not implemented yet)_
 - RESTful API
 - Web-based user interface
 - _RBAC (not implemented yet)_
