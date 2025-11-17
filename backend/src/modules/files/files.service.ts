@@ -196,27 +196,45 @@ export class FilesService {
         }
 
         if (file.type === FileType.DIRECTORY) {
-            const children = await this.fileRepo.find({
-                where: {
-                    userId,
-                    parentId: file.id,
-                },
-            })
+            const descendants: { s3Key: string | null }[] = await this.fileRepo.query(
+                `
+                WITH RECURSIVE descendants AS (
+                    SELECT id, "parentId", type, "s3Key", "userId"
+                    FROM files
+                    WHERE id = $1 AND "userId" = $2
 
-            for (const child of children) {
-                await this.deleteFile(child.id, userId)
+                    UNION ALL
+
+                    SELECT f.id, f."parentId", f.type, f."s3Key", f."userId"
+                    FROM files f
+                    INNER JOIN descendants d ON f."parentId" = d.id
+                    WHERE f."userId" = $2
+                )
+                SELECT "s3Key" FROM descendants WHERE type = 'file' AND "s3Key" IS NOT NULL
+                `,
+                [file.id, userId],
+            )
+
+            const keys = descendants.map((r) => r.s3Key!).filter(Boolean)
+            if (keys.length) {
+                try {
+                    await this.storageService.deleteFiles(keys)
+                } catch {
+                    throw new BadRequestException('Failed to delete files from storage')
+                }
             }
-        }
 
-        if (file.type === FileType.FILE && file.s3Key) {
-            try {
-                await this.storageService.deleteFile(file.s3Key)
-            } catch (error) {
-                throw new BadRequestException('Failed to delete file from storage')
+            await this.fileRepo.delete({ id: file.id })
+        } else {
+            if (file.s3Key) {
+                try {
+                    await this.storageService.deleteFile(file.s3Key)
+                } catch (error) {
+                    throw new BadRequestException('Failed to delete file from storage')
+                }
             }
+            await this.fileRepo.delete({ id: file.id })
         }
-
-        await this.fileRepo.remove(file)
 
         await this.redisService.delPattern(`breadcrumb:${userId}:*`)
     }

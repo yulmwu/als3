@@ -1,5 +1,5 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common'
-import { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3'
+import { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand, DeleteObjectsCommand } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import { v4 as uuidv4 } from 'uuid'
 
@@ -54,6 +54,22 @@ export class StorageService {
         })
 
         await this.s3Client.send(command)
+    }
+
+    async deleteFiles(s3Keys: string[]): Promise<void> {
+        if (!s3Keys.length) return
+        const chunkSize = 1000
+        for (let i = 0; i < s3Keys.length; i += chunkSize) {
+            const chunk = s3Keys.slice(i, i + chunkSize)
+            const command = new DeleteObjectsCommand({
+                Bucket: this.bucketName,
+                Delete: {
+                    Objects: chunk.map((Key) => ({ Key })),
+                    Quiet: true,
+                },
+            })
+            await this.s3Client.send(command)
+        }
     }
 
     async getPresignedUrl(s3Key: string, expiresIn: number = 3600): Promise<string> {
