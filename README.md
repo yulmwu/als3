@@ -38,6 +38,10 @@ For ease of use, the following convenience UI/UX is provided.
 ![pagination](./images/easy-to-use4-pagination.png)
 ![pagination](./images/easy-to-use5-pagination.png)
 
+- Directory download as ZIP file: When downloading a directory, it is compressed into a ZIP file
+
+![zip-download](./images/easy-to-use6-zip.png)
+
 ... and the download is provided in AWS S3 Presigned URL.
 
 ```
