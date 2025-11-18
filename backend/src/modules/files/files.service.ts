@@ -34,7 +34,6 @@ export class FilesService {
 
         validateFileName(file.originalname)
 
-        // Quota check
         const user = await this.userRepo.findOne({ where: { id: userId } })
         if (!user) throw new BadRequestException('User not found')
         const used = Number(user.storageUsed || 0)
@@ -85,7 +84,6 @@ export class FilesService {
         saved.s3Key = s3Key
         const updated = await this.fileRepo.save(saved)
 
-        // Increase user's used storage
         await this.userRepo.increment({ id: userId }, 'storageUsed', Number(file.size))
         await this.redisService.delPattern(`list:${userId}:*`)
         return updated
