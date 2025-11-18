@@ -76,6 +76,16 @@ export const FileDetailSidebar = ({ file, onClose, onDownload }: FileDetailSideb
                         </button>
                     )}
 
+                    {file.type === 'directory' && (
+                        <button
+                            onClick={() => onDownload(file)}
+                            className='w-full px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2 transition-colors'
+                        >
+                            <Download className='w-5 h-5' />
+                            <span className='font-medium'>ZIP으로 다운로드</span>
+                        </button>
+                    )}
+
                     <div className='space-y-4 text-sm'>
                         <div className='border-t border-gray-200 pt-4'>
                             <h4 className='font-semibold text-gray-900 mb-3'>상세 정보</h4>

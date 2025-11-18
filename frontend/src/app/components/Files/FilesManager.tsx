@@ -674,19 +674,20 @@ export const FilesManager = ({ currentUuid, onFileSelect, onDownload }: FilesMan
                                                                 }}
                                                                 onClick={(e) => e.stopPropagation()}
                                                             >
-                                                                {confirmDeleteUuid !== item.uuid &&
-                                                                    item.type === 'file' && (
-                                                                        <button
-                                                                            className='w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2'
-                                                                            onClick={() => {
-                                                                                handleDownload(item)
-                                                                                setOpenMenuUuid(null)
-                                                                            }}
-                                                                        >
-                                                                            <Download className='w-4 h-4 text-blue-600' />{' '}
-                                                                            다운로드
-                                                                        </button>
-                                                                    )}
+                                                                {confirmDeleteUuid !== item.uuid && (
+                                                                    <button
+                                                                        className='w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2'
+                                                                        onClick={() => {
+                                                                            handleDownload(item)
+                                                                            setOpenMenuUuid(null)
+                                                                        }}
+                                                                    >
+                                                                        <Download className='w-4 h-4 text-blue-600' />
+                                                                        {item.type === 'directory'
+                                                                            ? 'ZIP으로 다운로드'
+                                                                            : '다운로드'}
+                                                                    </button>
+                                                                )}
                                                                 {confirmDeleteUuid !== item.uuid && (
                                                                     <button
                                                                         className='w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2'

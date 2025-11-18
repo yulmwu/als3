@@ -100,6 +100,16 @@ export const getDownloadUrlByUuid = async (uuid: string) => {
     })
 }
 
+export const downloadDirectoryAsZip = async (uuid: string) => {
+    return withAuthRetry(async (header) => {
+        const response = await client.get(`/${FILES_API_PREFIX}/uuid/${uuid}/download-zip`, {
+            ...header,
+            responseType: 'blob',
+        })
+        return response.data as Blob
+    })
+}
+
 export const renameFile = async (id: number, newName: string) => {
     return withAuthRetry(async (header) => {
         const response = await client.patch<FileItem>(`/${FILES_API_PREFIX}/${id}/rename`, { newName }, header)

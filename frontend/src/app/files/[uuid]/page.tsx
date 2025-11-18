@@ -5,7 +5,7 @@ import { useParams, useSearchParams, useRouter } from 'next/navigation'
 import { FilesManager } from '../../components/Files/FilesManager'
 import { FileDetailSidebar } from '../../components/Files/FileDetailSidebar'
 import { PageLayout } from '../../components/PageLayout'
-import { FileItem, getDownloadUrlByUuid, getFileByUuid } from '@/api/files'
+import { FileItem, getDownloadUrlByUuid, getFileByUuid, downloadDirectoryAsZip } from '@/api/files'
 
 const FilesPage = () => {
     const params = useParams()
@@ -43,9 +43,21 @@ const FilesPage = () => {
 
     const handleDownload = async (file: FileItem) => {
         try {
-            const data = await getDownloadUrlByUuid(file.uuid)
-            if (data.downloadUrl) {
-                window.open(data.downloadUrl, '_blank')
+            if (file.type === 'directory') {
+                const blob = await downloadDirectoryAsZip(file.uuid)
+                const url = URL.createObjectURL(blob)
+                const a = document.createElement('a')
+                a.href = url
+                a.download = `${file.name}.zip`
+                document.body.appendChild(a)
+                a.click()
+                document.body.removeChild(a)
+                URL.revokeObjectURL(url)
+            } else {
+                const data = await getDownloadUrlByUuid(file.uuid)
+                if (data.downloadUrl) {
+                    window.open(data.downloadUrl, '_blank')
+                }
             }
         } catch (error) {
             console.error('Download failed:', error)
