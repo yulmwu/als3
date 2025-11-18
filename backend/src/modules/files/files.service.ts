@@ -11,6 +11,7 @@ import {
     ListFilesRequestDto,
 } from './dto'
 import { RedisService } from 'common/redis/redis.service'
+import { validateDirectoryName, validateFileName } from 'common/utils/validator'
 
 @Injectable()
 export class FilesService {
@@ -26,7 +27,7 @@ export class FilesService {
             throw new BadRequestException('Invalid file name')
         }
 
-        this.validateFileName(file.originalname)
+        validateFileName(file.originalname)
 
         let parentId: number | undefined = undefined
         let parentPath = '/'
@@ -74,7 +75,7 @@ export class FilesService {
     }
 
     async createDirectory(dto: CreateDirectoryRequestDto, userId: number): Promise<FileResponseDto> {
-        this.validateDirectoryName(dto.name)
+        validateDirectoryName(dto.name)
 
         let parentId: number | undefined = undefined
         let parentPath = '/'
@@ -276,9 +277,9 @@ export class FilesService {
         }
 
         if (file.type === FileType.DIRECTORY) {
-            this.validateDirectoryName(newName)
+            validateDirectoryName(newName)
         } else {
-            this.validateFileName(newName)
+            validateFileName(newName)
         }
 
         const existingItem = await this.fileRepo.findOne({
@@ -300,61 +301,6 @@ export class FilesService {
         await this.redisService.delPattern(`list:${userId}:*`)
 
         return updated
-    }
-
-    private validateDirectoryName(name: string): void {
-        if (!name || name.trim() === '') {
-            throw new BadRequestException('Directory name cannot be empty')
-        }
-
-        if (name.includes('/')) {
-            throw new BadRequestException('Directory name cannot contain slashes')
-        }
-
-        const invalidChars = /[<>:"|?*\x00-\x1f]/
-        if (invalidChars.test(name)) {
-            throw new BadRequestException('Directory name contains invalid characters')
-        }
-
-        if (name === '.' || name === '..') {
-            throw new BadRequestException('Directory name cannot be "." or ".."')
-        }
-
-        if (name.startsWith(' ') || name.endsWith(' ') || name.startsWith('.') || name.endsWith('.')) {
-            throw new BadRequestException('Directory name cannot start or end with spaces or dots')
-        }
-
-        if (name.length > 255) {
-            throw new BadRequestException('Directory name is too long (max 255 characters)')
-        }
-    }
-
-    private validateFileName(name: string): void {
-        if (!name || name.trim() === '') {
-            throw new BadRequestException('File name cannot be empty')
-        }
-
-        if (name.includes('/') || name.includes('\\')) {
-            throw new BadRequestException('File name cannot contain slashes or backslashes')
-        }
-
-        const invalidChars = /[<>:"|?*\x00-\x1f]/
-        if (invalidChars.test(name)) {
-            throw new BadRequestException('File name contains invalid characters')
-        }
-
-        if (name === '.' || name === '..') {
-            throw new BadRequestException('File name cannot be "." or ".."')
-        }
-
-        const trimmedName = name.trim()
-        if (trimmedName.startsWith('.') && trimmedName.length > 1 && trimmedName.charAt(1) === '.') {
-            throw new BadRequestException('File name cannot start with ".."')
-        }
-
-        if (name.length > 255) {
-            throw new BadRequestException('File name is too long (max 255 characters)')
-        }
     }
 
     async getFile(fileId: number, userId: number): Promise<FileResponseDto> {
