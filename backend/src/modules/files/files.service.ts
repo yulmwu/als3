@@ -14,11 +14,13 @@ import { RedisService } from 'common/redis/redis.service'
 import { validateDirectoryName, validateFileName } from 'common/utils/validator'
 import { ZipService } from 'common/zip/zip.service'
 import { Readable } from 'stream'
+import { User } from 'modules/users/users.entity'
 
 @Injectable()
 export class FilesService {
     constructor(
         @InjectRepository(File) private fileRepo: Repository<File>,
+        @InjectRepository(User) private userRepo: Repository<User>,
         private storageService: StorageService,
         private redisService: RedisService,
         private zipService: ZipService,
@@ -31,6 +33,15 @@ export class FilesService {
         }
 
         validateFileName(file.originalname)
+
+        // Quota check
+        const user = await this.userRepo.findOne({ where: { id: userId } })
+        if (!user) throw new BadRequestException('User not found')
+        const used = Number(user.storageUsed || 0)
+        const limit = Number(user.storageLimit || 0)
+        if (limit > 0 && used + Number(file.size) > limit) {
+            throw new BadRequestException('Storage limit exceeded')
+        }
 
         let parentId: number | undefined = undefined
         let parentPath = '/'
@@ -73,6 +84,9 @@ export class FilesService {
 
         saved.s3Key = s3Key
         const updated = await this.fileRepo.save(saved)
+
+        // Increase user's used storage
+        await this.userRepo.increment({ id: userId }, 'storageUsed', Number(file.size))
         await this.redisService.delPattern(`list:${userId}:*`)
         return updated
     }
@@ -287,7 +301,7 @@ export class FilesService {
         }
 
         if (file.type === FileType.DIRECTORY) {
-            const descendants: { s3Key: string | null }[] = await this.fileRepo.query(
+            const descendants: { s3Key: string | null; size: number | null }[] = await this.fileRepo.query(
                 `
                 WITH RECURSIVE descendants AS (
                     SELECT id, "parentId", type, "s3Key", "userId"
@@ -301,12 +315,13 @@ export class FilesService {
                     INNER JOIN descendants d ON f."parentId" = d.id
                     WHERE f."userId" = $2
                 )
-                SELECT "s3Key" FROM descendants WHERE type = 'file' AND "s3Key" IS NOT NULL
+                SELECT "s3Key", size FROM descendants WHERE type = 'file' AND "s3Key" IS NOT NULL
                 `,
                 [file.id, userId],
             )
 
             const keys = descendants.map((r) => r.s3Key!).filter(Boolean)
+            const totalSize = descendants.reduce((sum, r) => sum + (Number(r.size) || 0), 0)
             if (keys.length) {
                 try {
                     await this.storageService.deleteFiles(keys)
@@ -316,6 +331,9 @@ export class FilesService {
             }
 
             await this.fileRepo.delete({ id: file.id })
+            if (totalSize > 0) {
+                await this.userRepo.decrement({ id: userId }, 'storageUsed', totalSize)
+            }
         } else {
             if (file.s3Key) {
                 try {
@@ -325,6 +343,9 @@ export class FilesService {
                 }
             }
             await this.fileRepo.delete({ id: file.id })
+            if (file.size && file.size > 0) {
+                await this.userRepo.decrement({ id: userId }, 'storageUsed', Number(file.size))
+            }
         }
 
         await this.redisService.delPattern(`breadcrumb:${userId}:*`)

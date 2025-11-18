@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger'
-import { IsString, IsNotEmpty, MaxLength, Matches, IsOptional, IsInt, IsBoolean } from 'class-validator'
+import { IsString, IsNotEmpty, MaxLength, Matches, IsOptional, IsInt } from 'class-validator'
 
 export class UsernameDto {
     @ApiProperty({
@@ -77,4 +77,14 @@ export class RoleDto {
     @IsInt()
     @IsNotEmpty()
     role: number
+}
+
+export class StorageUsageDto {
+    @ApiProperty({ description: 'Total bytes used by the user', example: 123456789 })
+    @IsInt()
+    storageUsed: number
+
+    @ApiProperty({ description: 'Total bytes limit for the user', example: 1073741824 })
+    @IsInt()
+    storageLimit: number
 }

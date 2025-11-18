@@ -37,6 +37,12 @@ export class User {
     @OneToMany(() => File, (file) => file.user)
     files: File[]
 
+    @Column({ type: 'bigint', unsigned: true, default: 0 })
+    storageUsed: number
+
+    @Column({ type: 'bigint', unsigned: true, default: 1073741824 })
+    storageLimit: number
+
     @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
     createdAt: Date
 }

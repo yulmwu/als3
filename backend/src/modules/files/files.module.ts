@@ -4,12 +4,13 @@ import { MulterModule } from '@nestjs/platform-express'
 import { FilesController } from './files.controller'
 import { FilesService } from './files.service'
 import { File } from './files.entity'
+import { User } from 'modules/users/users.entity'
 import { StorageModule } from 'common/storage/storage.module'
 import { ZipModule } from 'common/zip/zip.module'
 
 @Module({
     imports: [
-        TypeOrmModule.forFeature([File]),
+        TypeOrmModule.forFeature([File, User]),
         StorageModule,
         ZipModule,
         MulterModule.register({
