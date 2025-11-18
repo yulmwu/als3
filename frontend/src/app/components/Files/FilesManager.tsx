@@ -335,11 +335,14 @@ export const FilesManager = ({ currentUuid, onFileSelect, onDownload }: FilesMan
 
     const handleDownload = async (item: FileItem) => {
         try {
-            const data = await getDownloadUrlByUuid(item.uuid)
-            if (data.downloadUrl) {
-                window.open(data.downloadUrl, '_blank')
+            if (onDownload) {
+                onDownload(item)
+            } else {
+                const data = await getDownloadUrlByUuid(item.uuid)
+                if (data.downloadUrl) {
+                    window.open(data.downloadUrl, '_blank')
+                }
             }
-            if (onDownload) onDownload(item)
         } catch (error) {
             console.error('Download failed:', error)
         }
