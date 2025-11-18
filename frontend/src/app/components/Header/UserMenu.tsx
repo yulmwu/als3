@@ -1,10 +1,27 @@
 import { LogOut } from 'lucide-react'
 import React, { useRef, useEffect, useState } from 'react'
+import { GetMeResponse } from '@/api/auth'
+import { formatBytes, getUsagePct } from '@/utils/byteFormatter'
 
 interface UserMenuProps {
-    user: { nickname?: string; username: string }
+    user: GetMeResponse
     onLogout: () => void
     onProfile?: () => void
+}
+
+const UsageBar = ({ used, limit }: { used: number; limit: number }) => {
+    const pct = getUsagePct(used, limit)
+    return (
+        <div>
+            <div className='w-full h-2 bg-gray-200 rounded-full overflow-hidden'>
+                <div
+                    className={`h-full ${pct > 90 ? 'bg-red-500' : pct > 75 ? 'bg-yellow-500' : 'bg-blue-500'}`}
+                    style={{ width: `${pct}%` }}
+                />
+            </div>
+            <div className='mt-1 text-[11px] text-gray-600'>{`${formatBytes(used)} / ${formatBytes(limit)}`}</div>
+        </div>
+    )
 }
 
 const UserMenu: React.FC<UserMenuProps> = ({ user, onLogout, onProfile }) => {
@@ -41,12 +58,16 @@ const UserMenu: React.FC<UserMenuProps> = ({ user, onLogout, onProfile }) => {
 
             {visible && (
                 <div
-                    className={`absolute right-0 mt-2 w-44 bg-white border border-gray-200 rounded-lg shadow-lg z-50 flex flex-col py-2 transition-all duration-150
+                    className={`absolute right-0 mt-2 w-56 bg-white border border-gray-200 rounded-lg shadow-lg z-50 flex flex-col py-2 transition-all duration-150
                         ${open ? 'animate-fadeIn' : 'animate-fadeOut'}`}
                     onAnimationEnd={() => {
                         if (!open) setVisible(false)
                     }}
                 >
+                    <div className='px-4 pb-2'>
+                        <div className='text-xs text-gray-600 mb-1'>스토리지 사용량</div>
+                        <UsageBar used={user.storageUsed} limit={user.storageLimit} />
+                    </div>
                     <button
                         className='text-left px-4 py-2 hover:bg-gray-100 text-gray-700 text-sm'
                         onClick={() => {

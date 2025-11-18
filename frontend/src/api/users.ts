@@ -14,13 +14,8 @@ export interface UserResponse {
     description?: string
     profileImage?: string
     role: UserRole
-    points: number
-    postCount: number
-    commentCount: number
-    followersCount: number
-    followingCount: number
-    isFollowing?: boolean
-    isFollowsMe?: boolean
+    storageUsed: number
+    storageLimit: number
     createdAt: string
 }
 
@@ -32,11 +27,8 @@ export type UserBriefResponse = Pick<
     | 'description'
     | 'profileImage'
     | 'role'
-    | 'points'
-    | 'followersCount'
-    | 'followingCount'
-    | 'isFollowing'
-    | 'isFollowsMe'
+    | 'storageUsed'
+    | 'storageLimit'
 >
 
 const USERS_API_PREFIX = 'users'

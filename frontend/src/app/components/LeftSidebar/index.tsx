@@ -3,6 +3,7 @@
 import { Home, FolderOpen, User, ChevronsRight, ChevronsDown } from 'lucide-react'
 import { SidebarItem } from './LeftSidebarItems'
 import { useAuth } from '../../context/AuthContext'
+import { formatBytes, getUsagePct } from '@/utils/byteFormatter'
 
 interface LeftSidebarProps {
     isCollapsed: boolean
@@ -80,6 +81,20 @@ const LeftSidebar = (props: LeftSidebarProps) => {
                             )}
                         </div>
                     </div>
+                    {user && (
+                        <div className={`${props.isCollapsed ? 'px-1 py-2' : 'px-2 py-2'} border-t border-gray-200`}>
+                            <div className={`${props.isCollapsed ? 'hidden' : 'block'} text-[11px] text-gray-600 mb-1`}>스토리지</div>
+                            <div className='w-full h-2 bg-gray-200 rounded-full overflow-hidden'>
+                                <div
+                                    className={`${getUsagePct(user.storageUsed, user.storageLimit) > 90 ? 'bg-red-500' : getUsagePct(user.storageUsed, user.storageLimit) > 75 ? 'bg-yellow-500' : 'bg-blue-500'} h-full`}
+                                    style={{ width: `${getUsagePct(user.storageUsed, user.storageLimit)}%` }}
+                                />
+                            </div>
+                            {!props.isCollapsed && (
+                                <div className='mt-1 text-[11px] text-gray-600'>{`${formatBytes(user.storageUsed)} / ${formatBytes(user.storageLimit)}`}</div>
+                            )}
+                        </div>
+                    )}
                 </div>
                 {!props.isMobile && (
                     <button
