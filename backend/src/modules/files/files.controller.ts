@@ -11,6 +11,8 @@ import {
     Request,
     UseInterceptors,
     UploadedFile,
+    Res,
+    StreamableFile,
 } from '@nestjs/common'
 import { FileInterceptor } from '@nestjs/platform-express'
 import {
@@ -26,6 +28,7 @@ import {
     ApiProperty,
 } from '@nestjs/swagger'
 import { IsUUID } from 'class-validator'
+import { Response } from 'express'
 import { JwtAuthGuard } from 'common/guards/jwt-auth.guard'
 import { AuthenticatedRequest } from 'common/types/express-request.interface'
 import { FilesService } from './files.service'
@@ -180,6 +183,55 @@ export class FilesController {
     ): Promise<FileWithDownloadUrlResponseDto> {
         const file = await this.filesService.getFileByUuid(uuid, req.user.userId)
         return this.filesService.getDownloadUrl(file.id, req.user.userId)
+    }
+
+    @Get(':id/download-zip')
+    @ApiOperation({ summary: 'Download a directory as a ZIP file' })
+    @ApiResponse({
+        status: 200,
+        description: 'Returns the directory contents as a ZIP file stream.',
+    })
+    @ApiNotFoundResponse({ description: 'Directory not found.' })
+    @ApiForbiddenResponse({ description: 'You do not have permission to access this directory.' })
+    @ApiBadRequestResponse({ description: 'This is not a directory or the directory is empty.' })
+    async downloadDirectoryAsZip(
+        @Param() { id }: IdDto,
+        @Request() req: AuthenticatedRequest,
+        @Res({ passthrough: true }) res: Response,
+    ): Promise<StreamableFile> {
+        const { stream, filename } = await this.filesService.downloadDirectoryAsZip(id, req.user.userId)
+
+        res.set({
+            'Content-Type': 'application/zip',
+            'Content-Disposition': `attachment; filename="${encodeURIComponent(filename)}"`,
+        })
+
+        return new StreamableFile(stream)
+    }
+
+    @Get('uuid/:uuid/download-zip')
+    @ApiOperation({ summary: 'Download a directory as a ZIP file by UUID' })
+    @ApiResponse({
+        status: 200,
+        description: 'Returns the directory contents as a ZIP file stream.',
+    })
+    @ApiNotFoundResponse({ description: 'Directory not found.' })
+    @ApiForbiddenResponse({ description: 'You do not have permission to access this directory.' })
+    @ApiBadRequestResponse({ description: 'This is not a directory or the directory is empty.' })
+    async downloadDirectoryAsZipByUuid(
+        @Param() { uuid }: UuidDto,
+        @Request() req: AuthenticatedRequest,
+        @Res({ passthrough: true }) res: Response,
+    ): Promise<StreamableFile> {
+        const file = await this.filesService.getFileByUuid(uuid, req.user.userId)
+        const { stream, filename } = await this.filesService.downloadDirectoryAsZip(file.id, req.user.userId)
+
+        res.set({
+            'Content-Type': 'application/zip',
+            'Content-Disposition': `attachment; filename="${encodeURIComponent(filename)}"`,
+        })
+
+        return new StreamableFile(stream)
     }
 
     // @Get('uuid/:uuid/breadcrumb')

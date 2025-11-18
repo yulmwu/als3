@@ -8,6 +8,7 @@ import {
 } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import { v4 as uuidv4 } from 'uuid'
+import { Readable } from 'stream'
 
 @Injectable()
 export class StorageService {
@@ -105,5 +106,20 @@ export class StorageService {
     async getPresignedUrls(s3Keys: string[], expiresIn: number = 3600): Promise<string[]> {
         const urls = await Promise.all(s3Keys.map((key) => this.getPresignedUrl(key, expiresIn)))
         return urls
+    }
+
+    async getFileStream(s3Key: string): Promise<Readable> {
+        const command = new GetObjectCommand({
+            Bucket: this.bucketName,
+            Key: s3Key,
+        })
+
+        const response = await this.s3Client.send(command)
+
+        if (!response.Body) {
+            throw new InternalServerErrorException('Failed to get file from S3')
+        }
+
+        return response.Body as Readable
     }
 }

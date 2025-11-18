@@ -12,6 +12,8 @@ import {
 } from './dto'
 import { RedisService } from 'common/redis/redis.service'
 import { validateDirectoryName, validateFileName } from 'common/utils/validator'
+import { ZipService } from 'common/zip/zip.service'
+import { Readable } from 'stream'
 
 @Injectable()
 export class FilesService {
@@ -19,6 +21,7 @@ export class FilesService {
         @InjectRepository(File) private fileRepo: Repository<File>,
         private storageService: StorageService,
         private redisService: RedisService,
+        private zipService: ZipService,
     ) {}
 
     async uploadFile(file: Express.Multer.File, userId: number, parentUuid?: string): Promise<FileResponseDto> {
@@ -181,7 +184,7 @@ export class FilesService {
         }
 
         if (file.type !== FileType.FILE) {
-            throw new BadRequestException('Cannot download a directory')
+            throw new BadRequestException('Cannot download a directory. Use directory download endpoint instead.')
         }
 
         if (!file.s3Key) {
@@ -198,6 +201,75 @@ export class FilesService {
         return {
             ...file,
             downloadUrl,
+        }
+    }
+
+    async downloadDirectoryAsZip(fileId: number, userId: number): Promise<{ stream: Readable; filename: string }> {
+        const directory = await this.fileRepo.findOne({
+            where: { id: fileId },
+        })
+
+        if (!directory) {
+            throw new NotFoundException('Directory not found')
+        }
+
+        if (directory.userId !== userId) {
+            throw new ForbiddenException('You do not have permission to access this directory')
+        }
+
+        if (directory.type !== FileType.DIRECTORY) {
+            throw new BadRequestException('This is not a directory')
+        }
+
+        const allFiles: File[] = await this.fileRepo.query(
+            `
+            WITH RECURSIVE descendants AS (
+                SELECT id, uuid, name, type, "s3Key", "mimeType", size, path, "parentId", "userId", "createdAt", "updatedAt"
+                FROM files
+                WHERE id = $1 AND "userId" = $2
+
+                UNION ALL
+
+                SELECT f.id, f.uuid, f.name, f.type, f."s3Key", f."mimeType", f.size, f.path, f."parentId", f."userId", f."createdAt", f."updatedAt"
+                FROM files f
+                INNER JOIN descendants d ON f."parentId" = d.id
+                WHERE f."userId" = $2
+            )
+            SELECT * FROM descendants WHERE type = 'file' AND "s3Key" IS NOT NULL
+            ORDER BY path, name
+            `,
+            [directory.id, userId],
+        )
+
+        if (allFiles.length === 0) {
+            throw new BadRequestException('Directory is empty')
+        }
+
+        const zipContext = this.zipService.createZipStreamForDirectory(directory.name)
+
+        const chunkSize = 50
+        for (let i = 0; i < allFiles.length; i += chunkSize) {
+            const chunk = allFiles.slice(i, i + chunkSize)
+            const filesToZip = await Promise.all(
+                chunk.map(async (file) => {
+                    const fileStream = await this.storageService.getFileStream(file.s3Key!)
+                    const fullPath = `${file.path}${file.name}`.replace(/^\/+/, '')
+                    return {
+                        name: file.name,
+                        path: fullPath,
+                        content: fileStream,
+                    }
+                }),
+            )
+
+            this.zipService.addFilesToZip(zipContext, filesToZip)
+        }
+
+        this.zipService.finalizeZip(zipContext)
+
+        return {
+            stream: zipContext.stream,
+            filename: `${directory.name}.zip`,
         }
     }
 

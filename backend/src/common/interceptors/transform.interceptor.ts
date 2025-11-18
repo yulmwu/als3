@@ -1,4 +1,4 @@
-import { Injectable, NestInterceptor, ExecutionContext, CallHandler } from '@nestjs/common'
+import { Injectable, NestInterceptor, ExecutionContext, CallHandler, StreamableFile } from '@nestjs/common'
 import { instanceToPlain } from 'class-transformer'
 import { Observable } from 'rxjs'
 import { map } from 'rxjs/operators'
@@ -6,6 +6,11 @@ import { map } from 'rxjs/operators'
 @Injectable()
 export class TransformInterceptor implements NestInterceptor {
     intercept(_: ExecutionContext, next: CallHandler): Observable<any> {
-        return next.handle().pipe(map((data) => instanceToPlain(data)))
+        return next.handle().pipe(
+            map((data) => {
+                if (data instanceof StreamableFile) return data
+                return instanceToPlain(data)
+            }),
+        )
     }
 }
