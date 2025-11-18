@@ -44,13 +44,17 @@ For ease of use, the following convenience UI/UX is provided.
 
 ![zip-download](./images/easy-to-use6-zip.png)
 
-... and the download is provided in AWS S3 Presigned URL.
+and file download is provided in AWS S3 Presigned URL.
 
 ```
 https://sample-als3-bucket.s3.ap-northeast-2.amazonaws.com/users/1/f/1c2d9651-0cb9-4145-9b7c-6919bc139dc0?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=AKIA6LGPG5W3G5SOBTFV%2F20251118%2Fap-northeast-2%2Fs3%2Faws4_request&X-Amz-Date=20251118T003714Z&X-Amz-Expires=3600&X-Amz-Signature=3e7b648f519974f6fd6a4329575f95e577fcc48a787e0ef181717f9a82fe7d36&X-Amz-SignedHeaders=host&response-content-disposition=attachment%3B%20filename%3D%22docker-compose.db.yaml%22&response-content-type=application%2Fx-yaml&x-amz-checksum-mode=ENABLED&x-id=GetObject
 ```
 
 ![download](./images/easy-to-use3-download.png)
+
+- Storage limits and usage indicator: Displays the user's storage usage and limit in the sidebar and profile dropdown.
+
+![storage-usage](./images/image-storage-limit.png)
 
 # Installation and Build, Usages
 
