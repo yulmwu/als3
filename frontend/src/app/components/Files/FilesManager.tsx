@@ -23,6 +23,9 @@ import {
     Trash2,
     Download,
     ChevronRight,
+    ChevronLeft,
+    ChevronsLeft,
+    ChevronsRight,
     Home,
     AlertCircle,
     Loader2,
@@ -33,6 +36,7 @@ import {
     Edit,
 } from 'lucide-react'
 import { useAuth } from '@/app/context/AuthContext'
+import { useIsMobile } from '@/app/hooks/useIsMobile'
 
 interface FilesManagerProps {
     currentUuid?: string
@@ -45,6 +49,7 @@ export const FilesManager = ({ currentUuid, onFileSelect, onDownload }: FilesMan
     const searchParams = useSearchParams()
     const pathname = usePathname()
     const { user, initializing } = useAuth()
+    const isMobile = useIsMobile()
     const [page, setPage] = useState(1)
     const [openMenuUuid, setOpenMenuUuid] = useState<string | null>(null)
     const [menuPosition, setMenuPosition] = useState<{ left: number; top: number }>({ left: 0, top: 0 })
@@ -425,24 +430,68 @@ export const FilesManager = ({ currentUuid, onFileSelect, onDownload }: FilesMan
                         </div>
                     </div>
 
-                    <div className='flex items-center gap-1 sm:gap-2 text-xs sm:text-sm text-gray-600 overflow-x-auto pb-1 scrollbar-thin'>
-                        <button
-                            onClick={navigateToRoot}
-                            className='hover:text-blue-600 flex items-center gap-1 flex-shrink-0'
-                        >
-                            <Home className='w-3 h-3 sm:w-4 sm:h-4' />
-                        </button>
-                        {breadcrumb.map((dir, index) => (
-                            <div key={dir.uuid} className='flex items-center gap-1 sm:gap-2 flex-shrink-0'>
-                                <ChevronRight className='w-3 h-3 sm:w-4 sm:h-4' />
-                                <button
-                                    onClick={() => navigateToDirectory(dir)}
-                                    className='hover:text-blue-600 truncate max-w-[120px] sm:max-w-none'
-                                >
-                                    {dir.name}
-                                </button>
+                    <div className='flex items-center justify-between gap-2'>
+                        <div className='flex items-center gap-1 sm:gap-2 text-xs sm:text-sm text-gray-600 overflow-x-auto pb-1 scrollbar-thin flex-1 min-w-0'>
+                            <button
+                                onClick={navigateToRoot}
+                                className='hover:text-blue-600 flex items-center gap-1 flex-shrink-0'
+                            >
+                                <Home className='w-3 h-3 sm:w-4 sm:h-4' />
+                            </button>
+                            {breadcrumb.map((dir, index) => (
+                                <div key={dir.uuid} className='flex items-center gap-1 sm:gap-2 flex-shrink-0'>
+                                    <ChevronRight className='w-3 h-3 sm:w-4 sm:h-4' />
+                                    <button
+                                        onClick={() => navigateToDirectory(dir)}
+                                        className='hover:text-blue-600 truncate max-w-[120px] sm:max-w-none'
+                                    >
+                                        {dir.name}
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+
+                        {filesData && filesData.totalPages > 1 && (
+                            <div className='flex items-center gap-2 text-xs sm:text-sm text-gray-600 pl-2'>
+                                <div className='hidden sm:block tabular-nums'>
+                                    {page} / {filesData.totalPages}
+                                </div>
+                                <div className='flex items-center gap-1'>
+                                    <button
+                                        className='h-8 w-8 flex items-center justify-center rounded text-gray-500 hover:text-black disabled:text-gray-300'
+                                        onClick={() => setPage(1)}
+                                        disabled={page === 1}
+                                        aria-label='first page'
+                                    >
+                                        <ChevronsLeft className='w-4 h-4' />
+                                    </button>
+                                    <button
+                                        className='h-8 w-8 flex items-center justify-center rounded text-gray-500 hover:text-black disabled:text-gray-300'
+                                        onClick={() => setPage((p) => Math.max(1, p - 1))}
+                                        disabled={page === 1}
+                                        aria-label='previous page'
+                                    >
+                                        <ChevronLeft className='w-4 h-4' />
+                                    </button>
+                                    <button
+                                        className='h-8 w-8 flex items-center justify-center rounded text-gray-500 hover:text-black disabled:text-gray-300'
+                                        onClick={() => setPage((p) => Math.min(filesData.totalPages, p + 1))}
+                                        disabled={page === filesData.totalPages}
+                                        aria-label='next page'
+                                    >
+                                        <ChevronRight className='w-4 h-4' />
+                                    </button>
+                                    <button
+                                        className='h-8 w-8 flex items-center justify-center rounded text-gray-500 hover:text-black disabled:text-gray-300'
+                                        onClick={() => setPage(filesData.totalPages)}
+                                        disabled={page === filesData.totalPages}
+                                        aria-label='last page'
+                                    >
+                                        <ChevronsRight className='w-4 h-4' />
+                                    </button>
+                                </div>
                             </div>
-                        ))}
+                        )}
                     </div>
                 </div>
 
@@ -708,23 +757,103 @@ export const FilesManager = ({ currentUuid, onFileSelect, onDownload }: FilesMan
                         </div>
                     )}
 
-                    {filesData && filesData.totalPages > 1 && (
-                        <div className='flex justify-center flex-wrap gap-2 mt-4 sm:mt-6'>
-                            {Array.from({ length: filesData.totalPages }, (_, i) => i + 1).map((p) => (
-                                <button
-                                    key={p}
-                                    onClick={() => setPage(p)}
-                                    className={`px-3 sm:px-4 py-2 rounded text-sm touch-manipulation ${
-                                        p === page
-                                            ? 'bg-blue-600 text-white'
-                                            : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                                    }`}
-                                >
-                                    {p}
-                                </button>
-                            ))}
-                        </div>
-                    )}
+                    {filesData &&
+                        filesData.totalPages > 1 &&
+                        (() => {
+                            const total = filesData.totalPages
+                            const maxButtons = isMobile ? 3 : 5
+                            let start = Math.max(1, page - Math.floor(maxButtons / 2))
+                            let end = Math.min(total, start + maxButtons - 1)
+                            if (end - start + 1 < maxButtons) {
+                                start = Math.max(1, end - maxButtons - 1 + 2 - 1) // keep window size when near end
+                            }
+
+                            const pages: number[] = []
+                            for (let i = start; i <= end; i++) pages.push(i)
+
+                            const showStartEllipsis = start > 2
+                            const showEndEllipsis = end < total - 1
+
+                            return (
+                                <div className='flex justify-center items-center flex-wrap gap-1 sm:gap-2 mt-4 sm:mt-6 mb-10 sm:mb-12 text-gray-600'>
+                                    <button
+                                        className='h-9 w-9 flex items-center justify-center rounded text-gray-500 hover:text-black disabled:text-gray-300'
+                                        onClick={() => setPage(1)}
+                                        disabled={page === 1}
+                                        aria-label='first page'
+                                    >
+                                        <ChevronsLeft className='w-4 h-4' />
+                                    </button>
+                                    <button
+                                        className='h-9 w-9 flex items-center justify-center rounded text-gray-500 hover:text-black disabled:text-gray-300'
+                                        onClick={() => setPage((p) => Math.max(1, p - 1))}
+                                        disabled={page === 1}
+                                        aria-label='previous page'
+                                    >
+                                        <ChevronLeft className='w-4 h-4' />
+                                    </button>
+
+                                    {start > 1 && (
+                                        <button
+                                            className={`h-9 min-w-9 px-2 rounded text-sm ${
+                                                1 === page
+                                                    ? 'text-black font-semibold'
+                                                    : 'text-gray-500 hover:text-black'
+                                            }`}
+                                            onClick={() => setPage(1)}
+                                        >
+                                            1
+                                        </button>
+                                    )}
+                                    {showStartEllipsis && <span className='px-1 text-gray-500'>…</span>}
+
+                                    {pages.map((pNum) => (
+                                        <button
+                                            key={pNum}
+                                            onClick={() => setPage(pNum)}
+                                            className={`h-9 min-w-9 px-2 rounded text-sm ${
+                                                pNum === page
+                                                    ? 'text-black font-semibold'
+                                                    : 'text-gray-500 hover:text-black'
+                                            }`}
+                                        >
+                                            {pNum}
+                                        </button>
+                                    ))}
+
+                                    {showEndEllipsis && <span className='px-1 text-gray-500'>…</span>}
+                                    {end < total && (
+                                        <button
+                                            className={`h-9 min-w-9 px-2 rounded text-sm ${
+                                                total === page
+                                                    ? 'text-black font-semibold'
+                                                    : 'text-gray-500 hover:text-black'
+                                            }`}
+                                            onClick={() => setPage(total)}
+                                        >
+                                            {total}
+                                        </button>
+                                    )}
+
+                                    <button
+                                        className='h-9 w-9 flex items-center justify-center rounded text-gray-500 hover:text-black disabled:text-gray-300'
+                                        onClick={() => setPage((p) => Math.min(total, p + 1))}
+                                        disabled={page === total}
+                                        aria-label='next page'
+                                    >
+                                        <ChevronRight className='w-4 h-4' />
+                                    </button>
+                                    <button
+                                        className='h-9 w-9 flex items-center justify-center rounded text-gray-500 hover:text-black disabled:text-gray-300'
+                                        onClick={() => setPage(total)}
+                                        disabled={page === total}
+                                        aria-label='last page'
+                                    >
+                                        <ChevronsRight className='w-4 h-4' />
+                                    </button>
+                                </div>
+                            )
+                        })()}
                 </div>
             </div>
 
