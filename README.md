@@ -19,6 +19,8 @@ Provides lightweight cloud **STaaS(Storage as a Service)** storage services usin
 - Web-based user interface
 - _RBAC (not implemented yet)_
 - _Collaboration/Cooperation and Sharing (not implemented yet)_
+- _Built-in format converter/viewer (not implemented yet)_
+- _Versioning and History (not implemented yet)_
 - ... and more.
 
 ---
