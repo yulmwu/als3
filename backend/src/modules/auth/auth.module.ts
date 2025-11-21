@@ -6,8 +6,7 @@ import { AuthController } from './auth.controller'
 import { UsersModule } from 'modules/users/users.module'
 import { JwtStrategy } from './jwt.strategy'
 import { ConfigModule, ConfigService } from '@nestjs/config'
-import { RedisModule } from 'common/redis/redis.module'
-import { JWT_EXPIRES_IN } from 'common/constants'
+import { RedisModule, JWT_EXPIRES_IN } from '@als3/shared'
 
 @Module({
     imports: [

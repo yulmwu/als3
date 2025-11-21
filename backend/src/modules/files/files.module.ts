@@ -5,8 +5,7 @@ import { FilesController } from './files.controller'
 import { FilesService } from './files.service'
 import { File } from './files.entity'
 import { User } from 'modules/users/users.entity'
-import { StorageModule } from 'common/storage/storage.module'
-import { ZipModule } from 'common/zip/zip.module'
+import { StorageModule, ZipModule } from '@als3/shared'
 
 @Module({
     imports: [

@@ -20,13 +20,11 @@ import {
     ApiBody,
     ApiBearerAuth,
 } from '@nestjs/swagger'
-import { REFRESH_TOKEN_EXPIRES_IN_SECONDS } from 'common/constants'
-import { JwtAuthGuard } from 'common/guards/jwt-auth.guard'
+import { REFRESH_TOKEN_EXPIRES_IN_SECONDS, JwtAuthGuard, AuthenticatedRequest } from '@als3/shared'
 import { Request, Response } from 'express'
 import { JwtService } from '@nestjs/jwt'
 
 import { AccessTokenDto, GetMeResponseDto, LoginDto, LoginResponseDto, RegisterDto, RegisterResponseDto } from './dto'
-import { AuthenticatedRequest } from 'common/types/express-request.interface'
 
 @ApiTags('Authorization')
 @Controller('auth')

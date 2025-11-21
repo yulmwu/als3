@@ -1,5 +1,5 @@
 import { ApiProperty, IntersectionType } from '@nestjs/swagger'
-import { IdDto, CreatedAtDto } from 'common/dto/base.dto'
+import { IdDto, CreatedAtDto } from '@als3/shared'
 import { FileNameDto, FilePathDto, FileTypeDto } from './base.dto'
 import { FileType } from '../files.entity'
 

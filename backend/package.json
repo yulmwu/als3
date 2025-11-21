@@ -21,6 +21,7 @@
         "prettier": "prettier --write \"src/**/*.ts\""
     },
     "dependencies": {
+        "@als3/shared": "0.0.1",
         "@aws-sdk/client-s3": "^3.859.0",
         "@aws-sdk/s3-presigned-post": "^3.863.0",
         "@aws-sdk/s3-request-presigner": "^3.930.0",
