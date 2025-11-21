@@ -83,7 +83,9 @@ const LeftSidebar = (props: LeftSidebarProps) => {
                     </div>
                     {user && (
                         <div className={`${props.isCollapsed ? 'px-1 py-2' : 'px-2 py-2'} border-t border-gray-200`}>
-                            <div className={`${props.isCollapsed ? 'hidden' : 'block'} text-[11px] text-gray-600 mb-1`}>스토리지</div>
+                            <div className={`${props.isCollapsed ? 'hidden' : 'block'} text-[11px] text-gray-600 mb-1`}>
+                                스토리지
+                            </div>
                             <div className='w-full h-2 bg-gray-200 rounded-full overflow-hidden'>
                                 <div
                                     className={`${getUsagePct(user.storageUsed, user.storageLimit) > 90 ? 'bg-red-500' : getUsagePct(user.storageUsed, user.storageLimit) > 75 ? 'bg-yellow-500' : 'bg-blue-500'} h-full`}

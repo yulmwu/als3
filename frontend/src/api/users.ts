@@ -21,14 +21,7 @@ export interface UserResponse {
 
 export type UserBriefResponse = Pick<
     UserResponse,
-    | 'id'
-    | 'username'
-    | 'nickname'
-    | 'description'
-    | 'profileImage'
-    | 'role'
-    | 'storageUsed'
-    | 'storageLimit'
+    'id' | 'username' | 'nickname' | 'description' | 'profileImage' | 'role' | 'storageUsed' | 'storageLimit'
 >
 
 const USERS_API_PREFIX = 'users'

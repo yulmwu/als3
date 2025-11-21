@@ -2,7 +2,8 @@ import type { NextConfig } from 'next'
 
 const nextConfig: NextConfig = {
     output: 'standalone',
-    devIndicators: false
+    outputFileTracingRoot: __dirname,
+    devIndicators: false,
 }
 
 export default nextConfig
