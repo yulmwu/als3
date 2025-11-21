@@ -1,0 +1,25 @@
+{
+    "name": "als3",
+    "version": "0.0.1",
+    "description": "A Lightweight STaaS Storage Service",
+    "author": "yulmwu",
+    "private": true,
+    "license": "MIT",
+    "workspaces": [
+        "frontend",
+        "backend"
+    ],
+    "scripts": {
+        "backend:dev": "npm run dev --workspace=backend",
+        "backend:build": "npm run build --workspace=backend",
+        "backend:start": "npm run start --workspace=backend",
+        "frontend:dev": "npm run dev --workspace=frontend",
+        "frontend:build": "npm run build --workspace=frontend",
+        "frontend:start": "npm run start --workspace=frontend",
+        "prettier": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
+        "prettier:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md}\""
+    },
+    "devDependencies": {
+        "prettier": "^3.6.2"
+    }
+}
