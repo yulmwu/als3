@@ -61,6 +61,8 @@ https://sample-als3-bucket.s3.ap-northeast-2.amazonaws.com/users/1/f/1c2d9651-0c
 ```shell
 git clone https://github.com/yulmwu/als3.git
 cd als3
+npm install
+
 touch .env
 ```
 
@@ -91,6 +93,10 @@ for security, change the value of `JWT_SECRET` to any value and populate AWS IAM
 
 ```shell
 docker-compose -f docker-compose.yaml up --build -d
+
+# or locally for development
+npm run backend:dev # or backend:start
+npm run frontend:dev # or frontend:start
 ```
 
 the default is port 3000 for backend and port 4000 for frontend. You can change the port mapping in `docker-compose.yaml` if needed.
