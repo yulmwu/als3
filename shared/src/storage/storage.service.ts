@@ -30,13 +30,21 @@ export class StorageService {
         const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY
         const bucketName = process.env.AWS_S3_BUCKET_NAME
 
-        if (!region || !accessKeyId || !secretAccessKey || !bucketName) {
-            throw new InternalServerErrorException('AWS S3 configuration is missing')
+        if (!region || !bucketName) {
+            throw new InternalServerErrorException(
+                `AWS S3 configuration is missing (region: ${region}, bucketName: ${bucketName})`,
+            )
         }
 
         this.s3Client = new S3Client({
             region,
-            credentials: { accessKeyId, secretAccessKey },
+            credentials:
+                !accessKeyId || !secretAccessKey
+                    ? undefined
+                    : {
+                          accessKeyId,
+                          secretAccessKey,
+                      },
         })
         this.bucketName = bucketName
     }
