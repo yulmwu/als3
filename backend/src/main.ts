@@ -6,11 +6,12 @@ import * as cookieParser from 'cookie-parser'
 
 const PORT = process.env.PORT ?? 3000
 const IS_PRODUCTION = process.env.NODE_ENV === 'production'
+const USE_GLOBAL_PREFIX = process.env.USE_GLOBAL_PREFIX === 'true'
 
 const bootstrap = async () => {
     const app = await NestFactory.create(AppModule)
 
-    app.setGlobalPrefix('api')
+    if (USE_GLOBAL_PREFIX) app.setGlobalPrefix('api')
     app.useGlobalPipes(
         new ValidationPipe({
             whitelist: true,

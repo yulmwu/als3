@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common'
+import { Module, Global } from '@nestjs/common'
 import { JwtModule } from '@nestjs/jwt'
 import { PassportModule } from '@nestjs/passport'
 import { AuthService } from './auth.service'
@@ -8,10 +8,11 @@ import { JwtStrategy } from './jwt.strategy'
 import { ConfigModule, ConfigService } from '@nestjs/config'
 import { RedisModule, JWT_EXPIRES_IN } from '@als3/shared'
 
+@Global()
 @Module({
     imports: [
         UsersModule,
-        PassportModule,
+        PassportModule.register({ defaultStrategy: 'jwt' }),
         JwtModule.registerAsync({
             imports: [ConfigModule],
             inject: [ConfigService],
@@ -26,5 +27,6 @@ import { RedisModule, JWT_EXPIRES_IN } from '@als3/shared'
     ],
     providers: [AuthService, JwtStrategy],
     controllers: [AuthController],
+    exports: [JwtStrategy, PassportModule, JwtModule],
 })
 export class AuthModule {}
