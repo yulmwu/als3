@@ -3,7 +3,7 @@ import axios from 'axios'
 // @ts-ignore
 const BASE_URL = typeof window !== 'undefined' && window.__RUNTIME_CONFIG__?.apiUrl 
     ? window.__RUNTIME_CONFIG__.apiUrl 
-    : (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api')
+    : 'http://localhost:3000/api'
 
 export { BASE_URL }
 
