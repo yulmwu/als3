@@ -132,3 +132,24 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 # References, Blog Posts
 
 - [Blog: [DB/SQL] Recursive CTE(Common Table Expression)을 통한 N+1 문제 개선해보기](https://velog.io/@yulmwu/db-recursive-cte-feat-breadcrumb) - about Recursive CTE for breadcrumb implementation
+
+# Multi Architecture Docker Image Build and Push to AWS ECR
+
+```shell
+AWS_ACCOUNT_ID="986129558966"
+AWS_REGION="ap-northeast-2"
+
+aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
+
+docker buildx build \
+  --platform linux/amd64,linux/arm64 \
+  -f backend/Dockerfile \
+  -t $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/als3-backend:latest \
+  --push .
+
+docker buildx build \
+  --platform linux/amd64,linux/arm64 \
+  -f frontend/Dockerfile \
+  -t $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/als3-frontend:latest \
+  --push .
+```

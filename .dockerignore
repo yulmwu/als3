@@ -1,0 +1,49 @@
+# Node modules
+**/node_modules
+
+# Local build artifacts (but allow copying from Docker build stages)
+backend/dist
+frontend/.next
+!shared/dist
+
+**/build
+
+# Logs
+**/*.log
+logs
+
+# Environment variables
+**/.env
+**/.env.*
+
+# IDE
+**/.idea
+**/.vscode
+**/.DS_Store
+
+# Git
+**/.git
+**/.gitignore
+
+# Docker
+**/Dockerfile
+**/.dockerignore
+
+# Documentation
+**/*.md
+
+# CI/CD
+**/*.yml
+**/*.yaml
+
+# Build artifacts
+**/coverage
+**/.nyc_output
+
+# Temp files
+**/.temp
+**/.tmp
+**/pids
+**/*.pid
+**/*.seed
+**/*.pid.lock
