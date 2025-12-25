@@ -1,7 +1,6 @@
 import { ApiProperty, IntersectionType } from '@nestjs/swagger'
-import { IdDto, CreatedAtDto } from '@als3/shared'
+import { IdDto, CreatedAtDto } from 'common/dto'
 import { FileNameDto, FilePathDto, FileTypeDto } from './base.dto'
-import { FileType } from '../files.entity'
 
 export class FileBaseResponseDto extends IntersectionType(IdDto, FileNameDto, FilePathDto, FileTypeDto, CreatedAtDto) {
     @ApiProperty({

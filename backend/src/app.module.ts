@@ -1,13 +1,13 @@
 import { Module } from '@nestjs/common'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { ConfigModule } from '@nestjs/config'
-import { RedisModule } from '@als3/shared'
+import { RedisModule } from 'common/redis/redis.module'
 
-import { UsersModule } from './modules/users/users.module'
-import { AuthModule } from './modules/auth/auth.module'
-import { FilesModule } from './modules/files/files.module'
+import { UsersModule } from 'modules/users/users.module'
+import { AuthModule } from 'modules/auth/auth.module'
+import { FilesModule } from 'modules/files/files.module'
 
-import { AppController } from './app.controller'
+import { AppController } from 'app.controller'
 
 @Module({
     imports: [
@@ -19,8 +19,6 @@ import { AppController } from './app.controller'
             username: process.env.DATABASE_USERNAME,
             password: process.env.DATABASE_PASSWORD,
             database: process.env.DATABASE_NAME,
-            autoLoadEntities: true,
-            synchronize: true,
         }),
         RedisModule,
         AuthModule,

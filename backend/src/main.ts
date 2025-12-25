@@ -1,8 +1,10 @@
 import { NestFactory } from '@nestjs/core'
 import { AppModule } from './app.module'
-import { setupSwagger, TransformInterceptor, TypeOrmExceptionFilter } from '@als3/shared'
 import { Logger, ValidationPipe } from '@nestjs/common'
 import * as cookieParser from 'cookie-parser'
+import { TransformInterceptor } from 'common/interceptors/transform.interceptor'
+import { TypeOrmExceptionFilter } from 'common/filters/typeorm-exception.filter'
+import { setupSwagger } from 'common/utils/setupSwagger'
 
 const PORT = process.env.PORT ?? 3000
 const IS_PRODUCTION = process.env.NODE_ENV === 'production'

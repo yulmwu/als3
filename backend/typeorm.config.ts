@@ -12,5 +12,4 @@ export default new DataSource({
     database: process.env.DATABASE_NAME,
     entities: ['src/modules/**/*.entity.ts'],
     migrations: ['src/migrations/*.ts'],
-    synchronize: true,
 })

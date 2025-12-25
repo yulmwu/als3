@@ -2,7 +2,10 @@ import { Injectable, NotFoundException, BadRequestException, ForbiddenException 
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository, IsNull } from 'typeorm'
 import { File, FileType } from './files.entity'
-import { StorageService, RedisService, validateDirectoryName, validateFileName, ZipService } from '@als3/shared'
+import { StorageService } from 'common/storage/storage.service'
+import { RedisService } from 'common/redis/redis.service'
+import { validateFileName, validateDirectoryName } from 'common/utils/validator'
+import { ZipService } from 'common/zip/zip.service'
 import {
     FileResponseDto,
     FileWithDownloadUrlResponseDto,

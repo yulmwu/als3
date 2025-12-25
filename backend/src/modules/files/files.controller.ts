@@ -29,7 +29,9 @@ import {
 } from '@nestjs/swagger'
 import { IsUUID } from 'class-validator'
 import { Response } from 'express'
-import { JwtAuthGuard, AuthenticatedRequest, IdDto } from '@als3/shared'
+import { JwtAuthGuard } from 'common/guards/jwt-auth.guard'
+import { AuthenticatedRequest } from 'common/types/express-request.interface'
+import { IdDto } from 'common/dto'
 import { FilesService } from './files.service'
 import {
     FileResponseDto,

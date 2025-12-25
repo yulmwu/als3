@@ -11,7 +11,7 @@
         "dev": "nest start --watch",
         "start:debug": "nest start --debug --watch",
         "start:prod": "node dist/main",
-        "typeorm": "ts-node ./node_modules/typeorm/cli.js",
+        "typeorm": "typeorm-ts-node-commonjs",
         "migration:generate": "npm run typeorm -- migration:generate src/migrations/Init --dataSource=typeorm.config.ts",
         "migration:run": "npm run typeorm -- migration:run --dataSource=typeorm.config.ts",
         "migration:revert": "npm run typeorm -- migration:revert --dataSource=typeorm.config.ts",
@@ -21,14 +21,13 @@
         "prettier": "prettier --write \"src/**/*.ts\""
     },
     "dependencies": {
-        "@als3/shared": "file:../shared",
         "@aws-sdk/client-s3": "^3.859.0",
         "@aws-sdk/s3-presigned-post": "^3.863.0",
         "@aws-sdk/s3-request-presigner": "^3.930.0",
         "@nestjs-modules/ioredis": "^2.0.2",
-        "@nestjs/common": "^11.0.1",
+        "@nestjs/common": "^11.1.5",
         "@nestjs/config": "^4.0.2",
-        "@nestjs/core": "^11.0.1",
+        "@nestjs/core": "^11.1.5",
         "@nestjs/jwt": "^11.0.0",
         "@nestjs/mapped-types": "*",
         "@nestjs/microservices": "^11.1.6",
@@ -66,6 +65,8 @@
         "ts-loader": "^9.5.2",
         "ts-node": "^10.9.2",
         "tsconfig-paths": "^4.2.0",
+        "typeorm": "^0.3.28",
+        "typeorm-ts-node-commonjs": "^0.3.20",
         "typescript": "^5.7.3"
     }
 }
