@@ -7,7 +7,7 @@ import { FileDetailSidebar } from '../components/Files/FileDetailSidebar'
 import { PageLayout } from '../components/PageLayout'
 import { FileItem, getDownloadUrlByUuid, getFileByUuid, downloadDirectoryAsZip } from '@/api/files'
 
-const FilesPage = () => {
+function FilesPageContent() {
     const params = useParams()
     const searchParams = useSearchParams()
     const router = useRouter()
@@ -83,6 +83,14 @@ const FilesPage = () => {
                 />
             </div>
         </PageLayout>
+    )
+}
+
+const FilesPage = () => {
+    return (
+        <Suspense fallback={<div className='p-6 text-center'>로딩 중...</div>}>
+            <FilesPageContent />
+        </Suspense>
     )
 }
 

@@ -1,6 +1,11 @@
 import axios from 'axios'
 
-export const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api'
+// @ts-ignore
+const BASE_URL = typeof window !== 'undefined' && window.__RUNTIME_CONFIG__?.apiUrl 
+    ? window.__RUNTIME_CONFIG__.apiUrl 
+    : (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api')
+
+export { BASE_URL }
 
 export const client = axios.create({
     baseURL: BASE_URL,
