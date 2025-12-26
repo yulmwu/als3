@@ -1,14 +1,7 @@
 FROM node:alpine AS deps
 WORKDIR /app
 
-COPY shared/package.json ./shared/
-COPY shared/tsconfig.json ./shared/
-COPY shared/src ./shared/src
-
 COPY frontend/package.json ./frontend/
-
-WORKDIR /app/shared
-RUN npm install
 
 WORKDIR /app/frontend
 RUN npm install
@@ -16,14 +9,8 @@ RUN npm install
 FROM node:alpine AS builder
 WORKDIR /app
 
-COPY shared ./shared
-COPY --from=deps /app/shared/node_modules ./shared/node_modules
-
 COPY frontend ./frontend
 COPY --from=deps /app/frontend/node_modules ./frontend/node_modules
-
-WORKDIR /app/shared
-RUN npm run build
 
 WORKDIR /app/frontend
 RUN npm run build

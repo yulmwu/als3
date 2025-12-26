@@ -1,12 +1,10 @@
 import axios from 'axios'
 
-// Runtime API URL configuration
-// Client-side: uses runtime-config.js (injected by docker-entrypoint.sh)
-// Server-side: uses API_URL environment variable (not bundled at build time)
 // @ts-ignore
-const BASE_URL = typeof window !== 'undefined' && window.__RUNTIME_CONFIG__?.apiUrl 
-    ? window.__RUNTIME_CONFIG__.apiUrl 
-    : (process.env.API_URL || 'http://localhost:3000/api')
+const BASE_URL =
+    typeof window !== 'undefined' && window.__RUNTIME_CONFIG__?.apiUrl ? window.__RUNTIME_CONFIG__.apiUrl : 'https://api.rlawnsdud.shop'
+
+console.log('API Base URL:', BASE_URL)
 
 export { BASE_URL }
 
