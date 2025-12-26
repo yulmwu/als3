@@ -15,6 +15,7 @@ COPY backend/package*.json ./
 COPY backend/tsconfig*.json ./
 COPY backend/nest-cli.json ./
 COPY backend/typeorm.config.ts ./
+COPY backend/typeorm.config.prod.ts ./
 
 # Copy backend source files
 COPY backend/src ./src
@@ -25,14 +26,18 @@ COPY --from=deps /app/node_modules ./node_modules
 # Build backend
 RUN npm run build
 
+# Compile production typeorm config
+RUN npx tsc typeorm.config.prod.ts --esModuleInterop --resolveJsonModule
+
 FROM node:20-alpine AS runner
 WORKDIR /app
 
 # Copy backend dist and package files
 COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/typeorm.config.prod.js ./typeorm.config.js
 
-# Install production dependencies
+# Install production dependencies only
 RUN npm install --omit=dev
 
 ENV NODE_ENV=production

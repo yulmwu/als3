@@ -19,6 +19,7 @@ import { AppController } from 'app.controller'
             username: process.env.DATABASE_USERNAME,
             password: process.env.DATABASE_PASSWORD,
             database: process.env.DATABASE_NAME,
+            autoLoadEntities: true,
         }),
         RedisModule,
         AuthModule,
